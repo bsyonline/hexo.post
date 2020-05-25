@@ -23,7 +23,57 @@ thumbnail:
 
 #### Runtime
 
-既然 Runtime 能够执行 javac ，那么也能执行 java ， 于是我们的第一个问题解决了（至少目前看能实现功能，就当是保底方案嘛）。编辑和运行都搞定了，接下来就要考虑调试了。还是按照前边的思路，编译运行都有命令，那调试应该也有命令吧。于是我们惊喜的发现在角落里有一个不起眼的家伙 jdb 。
+每个 Java 都会对应一个 Runtime 类的实例，用来使 Java 和环境能够进行交互。比如使用 Runtime 获取 CPU 核数和内存大小：
+```
+int availableProcessors = Runtime.getRuntime().availableProcessors();
+long freeMemory = Runtime.getRuntime().freeMemory();
+System.out.println(availableProcessors);
+System.out.println(freeMemory / 1024 / 1024);
+```
+Runtime 还可以用来在独立的进程中执行命令，比如这样：
+```
+Process process = Runtime.getRuntime().exec(new String[]{"powershell", "java -version"});
+InputStream inputStream = process.getErrorStream();
+BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
+String line = null;
+while((line = br.readLine()) !=null){
+	System.out.println(line);
+}
+br.close();
+```
+既然是执行命令，那么就会有正常输出和错误输出，Runtime 需要我们自己处理来处理 process.getErrorStream() 和 process.getInputStream() 。这里需要注意，因为 Runtime 是 fork 子进程来执行，流是父子进程公用的，所以很容易造成阻塞。正确的做法就是创建单独的线程来处理流。
+```
+Process proc = Runtime.getRuntime().exec(cmd);
+// any error message
+StreamBeat errorGobbler = new StreamBeat(ctx, proc.getErrorStream(), "ERROR");
+// any output
+StreamBeat outputGobbler = new StreamBeat(ctx, proc.getInputStream(), "OUTPUT");
+// kick them off
+new Thread(errorGobbler).start();
+new Thread(outputGobbler).start();
+// wait for finished
+int exitVal = proc.waitFor();
+```
+从 JDK1.5 以后，创建进程有一种更好的方式 ProcessBuilder ，它还提供了重定向错误输出，这样我们就不用创建线程来处理流了。
+```
+ProcessBuilder processBuilder = new ProcessBuilder();
+processBuilder.redirectErrorStream(true);
+processBuilder.command("powershell", cmd);
+Process process = processBuilder.start();
+InputStream inputStream = process.getInputStream();
+BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
+String line = null;
+while ((line = br.readLine()) != null) {
+	System.out.println(line);
+}
+br.close();
+```
+既然 Runtime 能够执行 javac ，那么也能执行 java ， 于是我们的第一个问题解决了（至少目前看能实现功能，就当是保底方案嘛）。
+
+
+
+
+编辑和运行都搞定了，接下来就要考虑调试了。还是按照前边的思路，编译运行都有命令，那调试应该也有命令吧。于是我们惊喜的发现在角落里有一个不起眼的家伙 jdb 。
 
 #### JDB
 
