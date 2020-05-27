@@ -10,7 +10,22 @@ date: 2020-05-18 23:39:45
 thumbnail:
 ---
 
-接到这个需求，首先了解一下什么是 web ide 。
+这是一个系列，记录了我们在接到这个需求之后进行的一些调研和尝试，以及最后我们是如何做的。好了，我们下面是一个路线图。
+
+1. 什么是 Cloud IDE
+2. Cloud IDE 都具有哪些功能
+3. 如何动态编译源代码文本
+4. 如何动态执行源代码文本
+5. Java如何执行命令行
+6. 如何进行远程debug
+7. 前后端如何交互
+8. 服务端执行日志如何返回客户端
+9. 前端代码编辑器
+10. 如何将工程发布成镜像
+11. 如何初始化workspace
+12. 如何做资源隔离
+
+首先了解一下什么是 web ide 。
 
 目前市面上都有哪些类似的产品，都具有什么功能。
 
@@ -71,6 +86,18 @@ br.close();
 不管是 Runtime 还是 ProcessBuilder ，都可以解决我们执行命令的问题。 于是我们顺着这个思路就想既然有 javac 、java -jar 这样的命令，那调试应该也有命令吧，于是我们惊喜的发现在角落里有一个不起眼的家伙 jdb 。
 
 #### JDB
+在说 jdb 之前，我们先来看几个概念。
+JDPA(Java Platform Debugger Architecture) 是一个多层的调试架构，它包括 3 层：JVM TI(Java VM Tool Interface) 、JDWP(Java Debug Wire Protocol) 和 JDI(Java Debug Interface) 。程序开发可以在任何一层切入到调试当中，但是由于 JDI 是最贴近用户的一层，所以在 JDI 进行编程操作最为简单。我们之前说的 jdb 就可以理解为 JDI 的一种实现。jdb 是一组调试的命令，它会进入一个会话来进行交互。
+首先启动 agent 。
+```
+java -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005 test.Test
+```
 
 
-命令有了，无非就再麻烦一下 Runtime 老兄嘛。燃鹅，在查看了 jdb 的用法之后，三下五除二请出了 Runtime 。纳尼？竟然卡住了。jdb 是一套交互命令， 使用 Runtime 执行之后进入到交互模式，Process 拿不到 stream ，程序卡入住，卡住了自然就没有响应给客户端，也就没办法再进行后续的操作了。在经历一阵研究之后，该方案宣告 gg 。
+
+
+我们把被调试的程序、调试程序的后端服务以及运行程序的 VM 统称为 debuggee ，把来看看 jdb 命令怎么用。
+
+
+
+命令有了，无非就再麻烦一下 Runtime 老兄嘛。燃鹅，在查看了 jdb 的用法之后，三下五除二请出了 Runtime 。纳尼？竟然卡住了。卡住的原因不是没有处理流，二十因为 jdb 会开启会话，启动 jdb 之后进入到交互模式，Process 拿不到 stream ，程序就卡入住，卡住了自然就没有响应给客户端，也就没办法再进行后续的操作了。所以直接使用 jdb 是不行的，但是 jdb 也是按照 JDI 实现的，那么我们也可以按照 JDI 来进行开发。
