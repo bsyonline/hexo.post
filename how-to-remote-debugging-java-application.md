@@ -129,14 +129,14 @@ Picked up JAVA_TOOL_OPTIONS: -Duser.language
 Set uncaught java.lang.Throwable
 Set deferred uncaught java.lang.Throwable
 Initializing jdb ...
-> stop in com.ksyun.remote.debug.controller.HelloController:17
-Set breakpoint com.ksyun.remote.debug.controller.HelloController:17
+> stop in com.rolex.alphax.remote.debug.controller.HelloController:17
+Set breakpoint com.rolex.alphax.remote.debug.controller.HelloController:17
 ```
 
 再访问接口，http://localhost:8099/hello?name=john 程序会执行到断点位置。
 
 ```shell
-Breakpoint hit: "thread=http-nio-8099-exec-5", com.ksyun.remote.debug.controller.HelloController.hello(), line=17 bci=0
+Breakpoint hit: "thread=http-nio-8099-exec-5", com.rolex.alphax.remote.debug.controller.HelloController.hello(), line=17 bci=0
 ```
 
 接下来就可以调试了。
@@ -213,7 +213,7 @@ classPrepareRequest.enable();
 ```java
 ClassPrepareEvent evt = (ClassPrepareEvent) event;
 ClassType classType = (ClassType) evt.referenceType();
-System.out.printf("eventLoop -> 添加断点：com.rolex.alphax.HelloWorld(L%d)\n", 6);
+System.out.printf("eventLoop -> 添加断点：HelloWorld(L%d)\n", 6);
 Location location = classType.locationsOfLine(6).get(0);
 System.out.println("eventLoop -> 注册ClassPrepareRequest事件");
 BreakpointRequest breakpointRequest = eventRequestManager.createBreakpointRequest(location);
