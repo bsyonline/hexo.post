@@ -24,6 +24,7 @@ thumbnail:
 10. 如何将工程发布成镜像
 11. 如何初始化workspace
 12. 如何做资源隔离
+13. plugins
 
 首先了解一下什么是 web ide 。
 

@@ -15,7 +15,7 @@ thumbnail:
 
 #### 静态代理
 有一个接口 Image 及它的实现。
-```
+```java
 public interface Image {
     void display();
 }
@@ -34,7 +34,7 @@ public class JPEGImage implements Image {
 }
 ```
 我们可以在通过代理 JPEGImage 在调用 display() 的时候扩展一些功能。
-```
+```java
 public class ImageProxy implements Image {
 
     private JPEGImage target;
@@ -65,7 +65,7 @@ public class ImageViewer {
 动态代理分为 jdk 动态代理和 cglib 代理。
 ##### jdk 动态代理
 jdk 动态代理利用 Java 反射通过 InvocationHandler 实现。
-```
+```java
 public class ImageProxy {
 
     Image target;
@@ -106,7 +106,7 @@ jdk 动态代理特点：需要实现接口，通过 Java 反射实现。
 	<version>3.1</version>
 </dependency>
 ```
-```
+```java
 public class ImageProxy implements MethodInterceptor {
 
     GIFImage target;
