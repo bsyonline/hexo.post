@@ -22,4 +22,22 @@ spring:
                 user-name-attribute: name
 ```
 
-spring boot 会将 spring.security.oauth2.client.registration.alphax 下的属性绑定到 ClientRegistration 实例。
+这样就实现了一个 Client 。
+
+在我们自己的 endpoint 里就可以通过 OAuth2 认证拿到我们想要的信息了。
+
+```java
+@RequestMapping("/hello")
+public String hello(@RegisteredOAuth2AuthorizedClient OAuth2AuthorizedClient authorizedClient, @AuthenticationPrincipal OAuth2User principal,
+                        Model model) {
+        log.info("username={}", principal.getName());
+        log.info("username={}", SecurityContextHolder.getContext().getAuthentication().getName());
+        log.info("attributes={}", principal.getAttributes());
+        log.info("authorities={}", principal.getAuthorities());
+        log.info("clientScopes={}", authorizedClient.getClientRegistration().getScopes());
+        log.info("clientName={}", authorizedClient.getClientRegistration().getClientName());
+        model.addAttribute("username", principal.getName());
+        return "welcome";
+}
+```
+

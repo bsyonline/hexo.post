@@ -28,7 +28,7 @@ thumbnail:
 
 [分布式锁](../../../../2019/06/14/lock/)
 
-[分布式事务](../../../..//2019/08/03/destributed-transations/)
+[分布式事务](../../../..//2019/08/03/transations/)
 
 [RPC的实现demo](../../../../2019/06/23/implementing-rpc/)
 

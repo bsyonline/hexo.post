@@ -42,7 +42,7 @@ thumbnail:
 #### Hystrix
 
 &nbsp;&nbsp;&nbsp;&nbsp;[Circuit Breaker using Spring Cloud Hystrix](../../../../2018/06/30/circuit-breaker-using-spring-cloud-hystrix/) <font color="blue">(Practice)</font>
-&nbsp;&nbsp;&nbsp;&nbsp;[Gazing at Hystrix](../../../../2020/03/24/gazing-at-hystrix/) <font color="red">(Fundamental)</font>
+&nbsp;&nbsp;&nbsp;&nbsp;[Gazing at Hystrix](../../../../2020/03/25/gazing-at-hystrix/) <font color="red">(Fundamental)</font>
 
 #### Sleuth and Zipkin
 
@@ -55,7 +55,7 @@ thumbnail:
 &nbsp;&nbsp;&nbsp;&nbsp;[Monitoring and Integrating Hystrix using Hystrix Dashboard and Turbine](../../../../2018/07/01/monitoring-and-integrating-hystrix-using-hystrix-dashboard-and-turbine/) <font color="blue">(Practice)</font>
 #### gRPC
 
-&nbsp;&nbsp;&nbsp;&nbsp;[About RPC](../../../../2018/05/18/about-rpc/) <font color="red">(Fundamental)</font>
+&nbsp;&nbsp;&nbsp;&nbsp;[Understanding Remote Procedure Call](../../../../2018/05/18/understanding-rpc/) <font color="red">(Fundamental)</font>
 
 &nbsp;&nbsp;&nbsp;&nbsp;[Getting Started with gRPC](../../../../2018/06/09/getting-started-with-grpc/) <font color="blue">(Practice)</font>
 &nbsp;&nbsp;&nbsp;&nbsp;[Spring Cloud with gRPC](../../../../2018/06/09/spring-cloud-with-grpc/) <font color="blue">(Practice)</font>
