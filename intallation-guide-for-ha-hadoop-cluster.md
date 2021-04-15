@@ -1,5 +1,5 @@
 ---
-title: Building HA Hadoop Cluster
+title: Installation Guide for HA Hadoop Cluster
 tags:
   - untag
 category:
