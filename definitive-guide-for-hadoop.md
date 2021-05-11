@@ -59,7 +59,11 @@ NameNode 通过心跳获取 DataNode 的状态，ResourceManager 通过心跳获
 
 ##### 3.2.3 安全模式
 
-HDFS 中的块丢失率达到阈值（0.1%）时，NameNode 就会进入安全模式。在安全模式下，客户端只能读，不能写。
+HDFS 中的块丢失率达到阈值（0.1%）时，NameNode 就会进入安全模式。
+
+NameNode 在刚启动时也会处于安全模式下。
+
+在安全模式下，客户端只能读，不能写。
 
 ##### 3.2.4 数据块
 
@@ -73,7 +77,49 @@ HDFS 读写数据的最小单位，默认大小 128MB 。文件被划分成多�
 
 ##### 3.2.5 元数据管理
 
-元数据信息会被保存在磁盘上的元数据镜像文件 fsimage 中，同时也会全部加载到内存中。通过预写日志 WAL 来更新，首先会写到 edits 文件中，再更新内存，edits 文件会被定期合并成 fsimage 文件。SecondaryNameNode 定期会将 NameNode 的上的 edits 和 fsimage 下载到本地，然后加载到内存进行合并，这个过程叫作 checkpoint 。
+```
+${dfs.namenode.name.dir}/
+├── current
+│   ├── VERSION
+│   ├── edits_0000000000000000001-0000000000000000019
+│   ├── edits_inprogress_0000000000000000020
+│   ├── fsimage_0000000000000000000
+│   ├── fsimage_0000000000000000000.md5
+│   ├── fsimage_0000000000000000019
+│   ├── fsimage_0000000000000000019.md5
+│   └── seen_txid
+└── in_use.lock
+```
+
+VERSION 记录了 HDFS 集群的版本信息。
+
+```
+#Mon Sep 29 09:54:36 BST 2014
+namespaceID=1342387246	#文件系统命名空间的唯一标识，在 namenode 首次格式化时创建
+clusterID=CID-01b5c398-959c-4ea8-aae6-1e0d9bd8b142	#HDFS 集群的唯一标识
+cTime=0	# 存储系统的创建时间，刚格式化就是0
+storageType=NAME_NODE
+blockpoolID=BP-526805057-127.0.0.1-1411980876842	#数据块池的唯一标识
+layoutVersion=-57	#描述 HDFS 持久性数据结构的版本，变更就会递减
+```
+
+编辑日志
+
+HDFS 的写操作通过预写日志 WAL 来更新，首先会写到 edits 文件（编辑日志）中。
+
+edits 文件是磁盘上的多个文件，每一个文件称为一个段（segment）。
+
+文件系统镜像
+
+edits 文件会被定期合并成 fsimage 文件。
+
+checkpoint 
+
+SecondaryNameNode 定期会将 NameNode 的上的 edits 和 fsimage 下载到本地，然后加载到内存进行合并，这个过程叫作 checkpoint 。
+
+<a href="https://imgtu.com/i/gi4zcT"><img src="https://z3.ax1x.com/2021/04/28/gi4zcT.png" alt="gi4zcT.png" border="0" /></a>
+
+在故障恢复时，fsimage 文件会被加载到内存以恢复元数据到最近状态，再从该点向前执行编辑日志中的每个事务。
 
 ##### 3.2.6 高可用
 
@@ -82,6 +128,8 @@ HDFS 读写数据的最小单位，默认大小 128MB 。文件被划分成多�
 ##### 3.2.7 集群联邦
 
 元数据信息是要加载到内存中的，随着集群规模的增长，内存会成为瓶颈。为了解决内存首先的问题，使用集群联邦。在 HDFS 集群中可以存在多个 NameNode ，每个 NameNode 存一部分元数据信息。
+
+
 
 #### 3.3 I/O 操作
 
@@ -98,7 +146,7 @@ HDFS 读写数据的最小单位，默认大小 128MB 。文件被划分成多�
 
 ##### 3.3.2 文件写入
 
-<a href="https://imgtu.com/i/gpfsEV"><img src="https://z3.ax1x.com/2021/04/27/gpfsEV.png" alt="gpfsEV.png" border="0"></a>
+<a href="https://imgtu.com/i/gioMtA"><img src="https://z3.ax1x.com/2021/04/28/gioMtA.png" alt="gioMtA.png" border="0" /></a>
 
 1. 客户端调用 DistributedFileSystem 的 create() 方法新建文件。
 2. DistributedFileSystem 通过 RPC 调用 NameNode ，在文件系统的命名空间中创建一个文件。
@@ -112,7 +160,7 @@ HDFS 读写数据的最小单位，默认大小 128MB 。文件被划分成多�
 
 HDFS 数据块和副本的存放是保证可靠性的关键。每个数据块都有多个副本，存储在不同的机器上。
 
-<a href="https://imgtu.com/i/czqadA"><img src="https://z3.ax1x.com/2021/04/26/czqadA.png" alt="czqadA.png" border="0"></a>
+<a href="https://imgtu.com/i/gio31P"><img src="https://z3.ax1x.com/2021/04/28/gio31P.png" alt="gio31P.png" border="0" /></a>
 
 副本存放策略：
 
@@ -126,7 +174,106 @@ HDFS 新建的文件是立即可见的，但是写入的内容不是。当写入
 
 ### 4. MapReduce
 
+##### 4.1 MapReduce 作业运行机制
 
+<a href="https://imgtu.com/i/gioGX8"><img src="https://z3.ax1x.com/2021/04/28/gioGX8.png" alt="gioGX8.png" border="0" /></a>
+
+1. 客户端程序创建一个 JobSummiter 实例。
+2. JobSummiter 向 ResourceManager 申请 Application ID 。
+3. JobSummiter 将运行作业需要的资源复制到共享文件系统中，路径以 Application ID 命名。
+4. 提交作业，提交之后 waitForCompletion() 每秒轮询作业进度。
+5. ResourceManager 将请求交给 Yarn 调度器，调度器分配 NodeManager 来运行容器并启动 application master —— MRAppMaster 。
+6. MRAppMaster 对作业进行初始化，创建 bookkeeping objects 完成作业进行跟踪。
+7. MRAppMaster 从共享文件系统获取输入分片，并对每个分片创建一个 map 任务及多个 reduce 任务，同时分配任务 ID 。
+8. 如果需要在其他节点运行任务， MRAppMaster 向 ResourceManager 请求资源。先请求 map 资源，再请求 reduce 资源。
+9. ResourceManager 为任务分配资源，MRAppMaster 再NodeManager 上创建容器。
+10. YarnChild 将任务需要的资源本地化，再运行 map 或 reduce 任务。 
+11. map 或 reduce 任务运行时，YarnChild 和 MRAppMaster 通过 umbilical 接口通信，每隔 3 秒 向MRAppMaster 上报进度和状态。
+12. 当 MRAppMaster 收到作业最后一个任务的完成通知，会更新作业状态，waitForCompletion() 方法退出。
+
+##### 4.2 Shuffle
+
+经过排序，将 map 的输出作为输入传给 reduce 的过程叫做 shuffle 。shuffle 分为 map 端和 reduce 端。
+
+<a href="https://imgtu.com/i/giorcV"><img src="https://z3.ax1x.com/2021/04/28/giorcV.png" alt="giorcV.png" border="0" /></a>
+
+在 map 端，每个 map 任务都有一个环形缓冲区，默认大小 100 MB 。map 将数据先写到缓冲区，当缓冲区的数据达到阈值，后台线程就将缓冲区的数据写到磁盘，这个过程叫溢写。在溢写过程中，map 还可以继续往缓冲区中写数据，如果缓冲区满了，map 会被阻塞。
+
+在写磁盘之前，根据 reduce 把对数据进行 partition 。在每个 partition 中进行内存排序。
+
+如果有 combiner ，则会在排序之后运行。如果有溢写的文件数量较多，会多次运行 combiner 。
+
+每次溢写会生成一个新的文件，这些文件会被合并成输出文件。
+
+默认情况下，map 的输出是不压缩的， 但可以通过配置开启。压缩可以减少传入 reduce 的数据量。
+
+在 reduce 端，通过 MRAppMaster 获取 map 的位置，通过复制线程并行地将 map 输出复制到 reduce 的内存或磁盘。
+
+复制完所有 map 输出后，reduce 对 map 输出循环的进行合并，并会保留排序。
+
+最后 reduce 阶段，将数据输入 reduce 函数，结果会输出到 HDFS 。
+
+##### 4.3 MapReduce 的类型
+
+map ：(K1, V1) ->  LIST(K2, V2)
+
+combiner : (K2, LIST(V2))  -> LIST(K2, V2) 
+
+reduce : (K2, LIST(V2)) -> LIST(K3, V3)
+
+##### 4.4 计数器
+
+任务计数器
+
+由任务维护，定期发送给 application master 。
+
+作业计数器
+
+由 application master 维护。
+
+用户定义的计数器
+
+##### 4.5 排序
+
+局部排序
+
+根据输入的键排序。
+
+全局排序
+
+使用单个 partition ，但效率极低。更好的方式是使用 partitioner ，先分区排序，再串联。
+
+##### 4.6 连接
+
+map 端连接
+
+连接操作由 mapper 执行。
+
+执行 map 端连接的要求：
+
+1. 各 map 的输入数据必须先分区且已排序。
+2. 各输入数据集被划分成相同数量的分区，且按连接键排序。
+3. 同一个键的所有记录会放在同一个分区。
+
+reduce 端连接
+
+连接操作由 reducer 执行。reduce 端没有输入数据集类型限制，所以 reduce 端的连接更常用，但是两个数据集在到达 reduce 之前都需要经历 shuffle ，所以 reduce 端连接的效率要低一些。通常使用连接键作为 map 的输出键，使相同的记录放到同一个 reduce
+
+##### 4.7 序列化
+
+基于 writable 实现。
+
+<a href="https://imgtu.com/i/gio86f"><img src="https://z3.ax1x.com/2021/04/28/gio86f.png" alt="gio86f.png" border="0" /></a>
+
+##### 4.8 输入输出格式
+
+基于文件
+
+基于文本
+
+基于数据库
+
+多个输入输出
 
 ### 5. Yarn
 
@@ -155,11 +302,25 @@ HDFS 新建的文件是立即可见的，但是写入的内容不是。当写入
 1. 客户端向 ResourceManager 申请提交作业。
 2. ResourceManager 寻找一个能够运行 application master 的节点，启动 container 运行 application master 。
 3. application master 向 ResourceManager 申请运行作业的资源。
-4. ResourceManager 寻找一个能够运行作业的的节点，启动 container 执行作业。
+4. application master 获得起源后，启动 container 执行作业。
 
 ##### 5.2 调度
 
+Yarn 有 3 种调度器
+
+1. FIFO Scheduler 先入先出调度器
+2. Capacity Scheduler 容量调度器
+3. Fair Scheduler 公平调度器
+
 # Part II. Hadoop Related Projects
 
+### 6. Hive
 
+
+
+### 7. HBase
+
+
+
+### 8. Flume
 
