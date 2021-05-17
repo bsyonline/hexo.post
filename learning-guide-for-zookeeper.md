@@ -12,17 +12,17 @@ thumbnail:
 
 
 
-### 简介
+#### 简介
 
 ZooKeeper 是一个开源的分布式协调服务。ZooKeeper 基于 Paxos 的 ZAB 协议提供一致性服务。
 
-### 安装
+#### 安装
 
 
 
-### 选举机制
+#### 选举机制
 
-#### Paxos 算法
+##### Paxos 算法
 
 Paxos 是一个基于消息传递的一致性算法。Paxos 的前提条件是要求计算环境是可信的，即不存在拜占庭将军问题（计算机硬件错误和网络攻击可能会影响投票结果）。
 
@@ -30,7 +30,7 @@ Paxos 是一个基于消息传递的一致性算法。Paxos 的前提条件是�
 
 Paxos 算法分为两个阶段：prepare 阶段和accpet 阶段。
 
-#### ZAB
+##### ZAB
 
 ZAB（ZooKeeper Atomic Broadcast）协议是 Paxos 算法的一种实现，用来实现分布式数据一致性，以支持 ZooKeeper 的崩溃恢复。ZooKeeper 中也有三种角色：Leader 、Follower 和 Observer 。
 
@@ -64,7 +64,7 @@ OBSERVING：Observer 正常工作或从 Leader 同步数据。
 
 LEADING：Leader 正常工作或广播数据更新。
 
-### 应用场景
+#### 应用场景
 
 1. 配置维护
 2. 命名服务

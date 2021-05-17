@@ -51,3 +51,70 @@ RocketMQ 的消息存储在 CommitLog 中，顺序写，写满一个在写下一
 IndexFile 可以通过 key 或时间来查询消息，低层通过 HashMap 实现。
 
 RocketMQ 支持同步刷盘和异步刷盘。同步刷盘在消息存储到磁盘上才会返回 ack ，可靠性高，性能不高。异步刷盘消息写入 PageCache 中就返回 ack ，后台异步线程将数据写到磁盘，性能和吞吐都很高。
+
+### 安装
+
+#### 1. 解压
+
+```
+unzip rocketmq-all-4.4.0-bin-release.zip
+mv rocketmq-all-4.4.0-bin-release rocketmq
+```
+
+#### 2. 修改配置文件
+
+RocketMQ 提供了多种配置：
+
+1. 2m-2s-async 2主2从异步刷盘
+2. 2m-2s-sync 2主2从同步刷盘
+3. 2m-noslave 2主
+4. broker.conf 单机
+
+这里使用单机部署。
+
+```
+brokerClusterName = rocketmq-cluster
+brokerName = broker-a
+brokerId = 0
+deleteWhen = 04
+fileReservedTime = 48
+brokerRole = ASYNC_MASTER
+flushDiskType = ASYNC_FLUSH
+defaultTopicQueueNums=4
+messageDelayLevel=1s 2s 3s 4s 5s 6s 7s 8s 9s 10s 11s 12s 13s 14s 15s 16s 17s 18s
+storePathRootDir=/home/rocketMQ/store
+storePathCommitLog=/home/rocketMQ/store/commitlog
+```
+
+创建存储路径
+
+```
+mkdir -p /home/rocketMQ/store
+mkdir -p /home/rocketMQ/store/commitlog
+```
+
+vim runbroker.sh  vim runserver.sh
+
+#### 3. 启动
+
+```
+nohup /opt/rocketmq/bin/mqnamesrv > namesrv.log &
+nohup /opt/rocketmq/bin/mqbroker -n localhost:9876 -c /opt/rocketmq/conf/broker.conf > broker.log &
+```
+
+#### 4. 测试
+
+发送消息
+
+```
+export NAMESRV_ADDR=127.0.0.1:9876
+sh /opt/rocketmq/bin/tools.sh org.apache.rocketmq.example.quickstart.Producer
+```
+
+消费消息
+
+```
+export NAMESRV_ADDR=127.0.0.1:9876
+sh /opt/rocketmq/bin/tools.sh org.apache.rocketmq.example.quickstart.Consumer
+```
+

@@ -12,15 +12,17 @@ thumbnail:
 
 
 
-简介
+### 简介
 
 
 
-安装
+### 安装
 
 
 
-函数
+### 函数
+
+#### 打包
 
 ```
 <dependency>
@@ -40,41 +42,45 @@ public class ToLowerCase extends UDF {
 }
 ```
 
-打包 hive-1.0-SNAPSHOT.jar
+打包 hive-1.0-SNAPSHOT.jar 。
 
-上传到服务器
+#### 临时函数
 
-加载
+##### 加载
+
+上传 jar 到服务器，并在 hive 中加载。
 
 ```
 hive> add jar /home/data/hive-1.0-SNAPSHOT.jar;
 ```
 
-创建函数
+##### 创建函数
+
+临时函数退出失效。
 
 ```
 hive> create temporary function tolowercase as 'com.rolex.hadoop.hive.udf.ToLowerCase';
 ```
 
-使用
+##### 使用
 
 ```
 hive> select tolowercase('ABC');
 ```
 
-再次进入 Hive ，临时函数无法使用。
+#### 永久函数
 
-创建永久函数
+##### 加载
 
-1. 上传 jar 到 HDFS
+上传 jar 到 HDFS
 
-2. 创建函数
+##### 创建函数
 
-   ```
-   create function tolowercase as 'com.rolex.hadoop.hive.udf.ToLowerCase' using jar 'hdfs://hadoop-cluster/user/jar/hive-1.0-SNAPSHOT.jar';
-   ```
+```
+create function tolowercase as 'com.rolex.hadoop.hive.udf.ToLowerCase' using jar 'hdfs://hadoop-cluster/user/jar/hive-1.0-SNAPSHOT.jar';
+```
 
-   
+##### 使用
 
 ```
 

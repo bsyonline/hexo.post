@@ -32,7 +32,7 @@ Flume agent 由 Source 、Sink 和 Channel 。Flume 的数据流由 Event 构成
 
 #### 多 Agent 合并
 
-
+<a href="https://imgtu.com/i/gyBZ9O"><img src="https://z3.ax1x.com/2021/05/15/gyBZ9O.png" alt="gyBZ9O.png" border="0" /></a>
 
 #### 多路复用
 

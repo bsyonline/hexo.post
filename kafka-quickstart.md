@@ -14,7 +14,7 @@ thumbnail:
 
 ### Kafka 简介
 
-
+Kafka 是一个开源的、分布式的、基于发布订阅模式的消息中间件，广泛应用于日志收集和大数据领域。
 
 ### 安装
 
@@ -110,3 +110,8 @@ Kafka 启动需要用到 Zookeeper ，需要提前搭好。
 ./bin/kafka-topics.sh --zookeeper hadoop1:2181 --delete --topic test_01
 ```
 
+### 概念
+
+Kafka 由 Producer 、Broker 、Consumer 组成，需要通过 ZooKeeper 完成注册发现。Producer 向 Broker 发送消息，每条消息都属于一个 Topic 。每个 Topic 包含一个或多个 Partition 。Partition 有多个副本，叫做 Replica 。Replica 分 Leader 和 Follower ，Producer 和 Consumer 与 Leader 交互，Follower 从 Leader 同步数据。Consumer 属于 ConsumerGroup ，Consumer 从 Partition 中消费消息，一条消息只能被一个 ConsumerGroup 中的一个 Consumer 消费。
+
+Kafka 消息顺序写入磁盘，并进行分段存储，每个日志段文件写满后，接着写下一个。每个日志段文件不会太大，以便快速加载到内存，提高读效率。每个日志段文件对应都有索引文件，默认每 4KB 记一个索引，查找时使用二分查找，复杂度为 O(logN) 。
