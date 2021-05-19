@@ -44,6 +44,8 @@ Broker 为主从架构，一个 Master 可对应多个 Slave 。Producer 只能�
 
 ### 存储
 
+![https://gitee.com/bsyonline/pic/raw/master/20210519095716.png](https://gitee.com/bsyonline/pic/raw/master/20210519095716.png)
+
 RocketMQ 的消息存储在 CommitLog 中，顺序写，写满一个在写下一个。在读的时候为随机读。
 
 为了提高消费的效率，会将元数据（消息在 CommitLog 中的 offset 、消息的大小、tag 的 hashcode）保存到逻辑消费队列 ConsumerQueue ，ConsumerQueue 相当于 CommitLog 的索引。ConsumerQueue 是顺序读，利用了 PageCache 和 Mmap ，所以读的效率很高。
