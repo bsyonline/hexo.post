@@ -52,6 +52,8 @@ RocketMQ 的消息存储在 CommitLog 中，顺序写，写满一个在写下一
 
 IndexFile 可以通过 key 或时间来查询消息，低层通过 HashMap 实现。
 
+<img src="https://gitee.com/bsyonline/pic/raw/master/rocketmq_design_2.png"/>
+
 RocketMQ 支持同步刷盘和异步刷盘。同步刷盘在消息存储到磁盘上才会返回 ack ，可靠性高，性能不高。异步刷盘消息写入 PageCache 中就返回 ack ，后台异步线程将数据写到磁盘，性能和吞吐都很高。
 
 ### 安装

@@ -1,9 +1,9 @@
 ---
-title: learning guide for zookeeper
+title: Learning Guide for ZooKeeper
 tags:
-  - untag
+  - zookeeper
 category:
-  - uncategory
+  - bigdata
 author: bsyonline
 lede: 没有摘要
 date: 2021-05-09 12:01:55
@@ -14,11 +14,11 @@ thumbnail:
 
 #### 简介
 
-ZooKeeper 是一个开源的分布式协调服务。ZooKeeper 基于 Paxos 的 ZAB 协议提供一致性服务。
+ZooKeeper 是一个开源的高性能分布式协调服务。ZooKeeper 基于 Paxos 的 ZAB 协议提供一致性服务。
 
 #### 安装
 
-
+[installation guide for zookeeper](../../../../2015/07/14/installation-guide-for-zookeeper)
 
 #### 选举机制
 
@@ -46,7 +46,9 @@ epoch 每个 Leader 的标号，用于区分不同的时期
 
 xid 事务id ，流水号
 
-zkServer 状态有 3 中模式：
+#### 模式
+
+zkServer 状态有 3 种模式：
 
 恢复模式：集群启动或 Leader 宕机时，集群进入恢复模式。恢复模式包括 Leader 的选举和初始化同步两个阶段。
 
@@ -54,7 +56,7 @@ zkServer 状态有 3 中模式：
 
 同步模式：分为初始化同步和更新同步。
 
-状态
+#### 状态
 
 LOOKING：选举状态。
 
@@ -64,13 +66,57 @@ OBSERVING：Observer 正常工作或从 Leader 同步数据。
 
 LEADING：Leader 正常工作或广播数据更新。
 
+#### 存储结构
+
+ZooKeeker 的存储结构是一个树形结构，每个节点是一个 znode ，每个 znode 都可以存储数据。
+
+#### znode 节点类型
+
+有 4 种节点类型：
+
+1. PERSISTENT 持久节点：创建后一直存在，除非主动删除。
+2. PERSISTENT_SEQUENTIAL 持久顺序节点
+3. EPHEMERAL 临时节点：生命周期和客户端连接相同。临时节点只能是叶子节点，不能有子节点。
+4. EPHEMERAL_SEQUENTIAL 临时顺序节点
+
+#### 客户端连接 zkServer 流程
+
+不管使用 zkClient 还是 curator ，连接大致相同。
+
+1. 首先创建 ZooKeeper 对象。
+2. 解析连接字符串，在 StaticHostProvider 中用 Collections.shuffle() 将 server 顺序打乱，目的是做负载均衡。
+3. 创建 ClientCnxn 对象，调用 start()  方法。
+4. 在 start() 中启动 2 个线程 SendThread 和 EventThread 。SendThread 从 server 地址列表里轮询取出地址尝试连接。
+
+#### 客户端连接状态
+
+```java
+CONNECTING, 		// 连接中
+ASSOCIATING, 		// 关联
+CONNECTED,  		// 已连接
+CONNECTEDREADONLY, 	// 只读
+CLOSED, 			// 连接关闭
+AUTH_FAILED,  		// 鉴权失败
+NOT_CONNECTED;  	// 未连接
+```
+
 #### 应用场景
 
-1. 配置维护
+1. 配置管理
+
+   比如 HBase 用 zk 来管理集群配置信息，Kafka 用 zk 来管理 broker 信息。
+
 2. 命名服务
-3. DNS 服务
-4. Master 选举
-5. 分布式同步
-6. 集群管理
-7. 分布式锁
-8. 分布式队列
+
+   比如 DNS 服务
+
+3. 分布式同步
+
+   1. 分布式锁
+   2. leader 选举
+
+4. 集群管理
+
+   比如 Dubbo 用 zk 做服务注册发现。Kafka 用 zk 做 consumer 端的重平衡。
+
+   

@@ -1,5 +1,5 @@
 ---
-title: Installation Guide for Zookeeper
+title: Zookeeper 安装
 date: 2015-07-14 16:00:38
 tags:
  - Zookeeper
