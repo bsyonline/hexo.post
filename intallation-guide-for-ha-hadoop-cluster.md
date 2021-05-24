@@ -110,12 +110,12 @@ export JAVA_HOME=/opt/java/
     <!-- nn1 的 RPC 通信地址 -->
     <property>
         <name>dfs.namenode.rpc-address.hadoop-cluster.nn1</name>
-        <value>hadoop1</value>
+        <value>hadoop1:8020</value>
     </property>
     <!-- nn2 的 RPC 通信地址 -->
     <property>
         <name>dfs.namenode.rpc-address.hadoop-cluster.nn2</name>
-        <value>hadoop2</value>
+        <value>hadoop2:8020</value>
     </property>
     <!-- nn1 的 http 通信地址 -->
     <property>
@@ -266,8 +266,10 @@ export JAVA_HOME=/opt/java/
 
 #### 8）启动 journalnode
 
+3 个节点都准备好。
+
 ```
-/opt/hadoop-2.10.1/bin/hadoop-daemon.sh start journalnode
+/opt/hadoop-2.10.1/sbin/hadoop-daemon.sh start journalnode
 ```
 
 #### 9）格式化 NameNode 

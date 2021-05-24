@@ -12,12 +12,9 @@ thumbnail:
 
 
 
-# Part I. Hadoop Fundamentals
-
-
+## Part I. Hadoop Fundamentals
 
 ### 1. Hadoop 是什么
-
 Hadoop 是一个开源的软件框架，包含基础组件 Common、分布式文件存储系统 HDFS 、分布式计算引擎 MapReduce 及2.0 以后加入的资源调度系统 Yarn 。 
 
 常见的发行版本有 Apache、Cloudera、Hortonworks 。
@@ -312,7 +309,7 @@ Yarn 有 3 种调度器
 2. Capacity Scheduler 容量调度器
 3. Fair Scheduler 公平调度器
 
-# Part II. Hadoop Related Projects
+## Part II. Hadoop Related Projects
 
 ### 6. Hive
 
