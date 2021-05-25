@@ -12,17 +12,17 @@ thumbnail:
 
 
 
-#### 简介
+### 简介
 
 ZooKeeper 是一个开源的高性能分布式协调服务。ZooKeeper 基于 Paxos 的 ZAB 协议提供一致性服务。
 
-#### 安装
+### 安装
 
 [installation guide for zookeeper](../../../../2015/07/14/installation-guide-for-zookeeper)
 
-#### 选举机制
+### 选举机制
 
-##### Paxos 算法
+#### Paxos 算法
 
 Paxos 是一个基于消息传递的一致性算法。Paxos 的前提条件是要求计算环境是可信的，即不存在拜占庭将军问题（计算机硬件错误和网络攻击可能会影响投票结果）。
 
@@ -30,7 +30,7 @@ Paxos 是一个基于消息传递的一致性算法。Paxos 的前提条件是�
 
 Paxos 算法分为两个阶段：prepare 阶段和accpet 阶段。
 
-##### ZAB
+#### ZAB
 
 ZAB（ZooKeeper Atomic Broadcast）协议是 Paxos 算法的一种实现，用来实现分布式数据一致性，以支持 ZooKeeper 的崩溃恢复。ZooKeeper 中也有三种角色：Leader 、Follower 和 Observer 。
 
@@ -66,7 +66,37 @@ OBSERVING：Observer 正常工作或从 Leader 同步数据。
 
 LEADING：Leader 正常工作或广播数据更新。
 
-#### 存储结构
+#### 选举规则
+
+先比较 zxid ，zxid 大的投票为 leader 。如果 zxid 相同，则 myid 大的投票为 leader 。
+
+#### 选举过程
+
+##### 集群启动时选举
+
+
+
+1. node1 启动，首先投票给自己，然后将 proposal (epoch,xid) 广播给其他节点。
+2. node2 启动，首先投票给自己，然后将 proposal (epoch,xid) 广播给其他节点。
+3. node1 收到 node2 的 proposal ，集群刚启动 epoch+xid ，则比较 myid ，node2 的 myid 大，所以 node1 接受 node2 的 proposal ，并反馈给 node2 。
+4. node 2 收到 node1 的 proposal ，集群刚启动 epoch+xid ，则比较 myid ，node2 的 myid 大，所以 node2 忽略 node1 的 proposal ，并反馈给 node1 。
+5. 一轮投票后，汇总投票结果，node2 投票超过半数，则 node2 当选 leader 。
+6. node3 启动，node2 通知 node3 ，leader 节点为 node2 。
+
+##### leader 宕机时选举
+
+<img src="https://gitee.com/bsyonline/pic/raw/master/20210521092055.png"/>
+
+1. leader node2 宕机，所有 follower 节点状态改为 LOOKING 。
+2. node1 先投自己，然后将 proposal 广播给其他节点。
+3. node3 先投自己，然后将 proposal 广播给其他节点。
+4. node1 收到 node3 的 proposal ，如果 node3 的 xid 大，node1 接受 node3 的 proposal ，然后将结果返回给 node3 。
+5. node3 收到 node1 的 proposal ，如果 node3 的 xid 大，node3 忽略 node1 的 proposal ，然后将结果返回给 node1 。
+6. 一轮投票后，汇总投票结果 node3 投票超过半数，则 node3 当选 leader 。
+
+
+
+### 存储结构
 
 ZooKeeker 的存储结构是一个树形结构，每个节点是一个 znode ，每个 znode 都可以存储数据。
 
@@ -79,7 +109,9 @@ ZooKeeker 的存储结构是一个树形结构，每个节点是一个 znode ，
 3. EPHEMERAL 临时节点：生命周期和客户端连接相同。临时节点只能是叶子节点，不能有子节点。
 4. EPHEMERAL_SEQUENTIAL 临时顺序节点
 
-#### 客户端连接 zkServer 流程
+### 客户端
+
+#### 连接 zkServer 流程
 
 不管使用 zkClient 还是 curator ，连接大致相同。
 
@@ -100,7 +132,7 @@ AUTH_FAILED,  		// 鉴权失败
 NOT_CONNECTED;  	// 未连接
 ```
 
-#### 应用场景
+### 应用场景
 
 1. 配置管理
 

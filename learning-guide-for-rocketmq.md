@@ -1,5 +1,5 @@
 ---
-title: learning guide for rocketmq
+title: Learning Guide for RocketMQ
 date: 2021-05-07 08:39:20
 tags:
 ---
@@ -120,5 +120,25 @@ sh /opt/rocketmq/bin/tools.sh org.apache.rocketmq.example.quickstart.Producer
 ```
 export NAMESRV_ADDR=127.0.0.1:9876
 sh /opt/rocketmq/bin/tools.sh org.apache.rocketmq.example.quickstart.Consumer
+```
+
+### 命令
+
+创建 Topic
+
+```
+bin/mqadmin updateTopic -n localhost:9876 -b localhost:10911 -t world
+```
+
+发消息
+
+```
+bin/mqadmin sendMessage -n localhost:9876 -b localhost:10911 -t world -p test
+```
+
+消费消息
+
+```
+bin/mqadmin consumeMessage -n localhost:9876 -b localhost:10911 -g group1 -t world
 ```
 
