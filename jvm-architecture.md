@@ -77,7 +77,7 @@ JVM 未规定异常。
 存储使用栈帧来保存局部变量表、操作数栈、动态链接、方法出口等。
 
 JVM 规定了两种异常：StackOutOfMemoryError 和 OutOfMemoryError 。
-**本地方法栈（Native Methon Stack）**
+**本地方法栈（Native Method Stack）**
 本地方法栈和虚拟机栈类似，区别是本地方法栈用于执行本地方法。
 **堆（Java Heap）**
 堆是共享的，是 Java 内存最大的区域。Java 内存回收主要发生在堆，按照分代收集算法进行内存回收。堆内存可以细分为新生代和老年代。新生代又分为 Eden 、From Survivor 和 To Survivor 。堆是逻辑连续的，物理可以不连续。

@@ -11,15 +11,18 @@ thumbnail:
 ---
 
 在进行 JVM 调优之前首先需要确定当前环境 JVM 各项参数的值是什么。我们可以用以下几种方式查看 JVM 的参数配置。
-1. **使用 jinfo** 
-查看某个具体的参数
+### 1. 使用 jinfo 
+
+#### 查看某个具体的参数
+
 ```
 D:\Dev\IdeaProjects\microlabs\effictive-java>jinfo -flag MaxHeapSize 19280
 -XX:MaxHeapSize=4267704320
 ```
-查看所有的参数
+#### 查看所有的参数
+
 ```
->jinfo -flags 19280
+# jinfo -flags 19280
 Attaching to process ID 19280, please wait...
 Debugger attached successfully.
 Server compiler detected.
@@ -28,18 +31,20 @@ Non-default VM flags: -XX:CICompilerCount=4 -XX:InitialHeapSize=268435456 -XX:Ma
 XX:+PrintCommandLineFlags -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseFastUnorderedTimeStamps -XX:-UseLargePagesIndividualAllocation -XX:+UseParallelGC
 Command line:  -XX:+PrintCommandLineFlags -javaagent:D:\Program Files\JetBrains\IntelliJ IDEA 2019.2\lib\idea_rt.jar=5195:D:\Program Files\JetBrains\IntelliJ IDEA 2019.2\bin -Dfile.encoding=UTF-8
 ```
-2. **使用 -XX:+PrintCommandLineFlags**
+### 2. 使用 -XX:+PrintCommandLineFlags
+
 ```
->java -XX:+PrintCommandLineFlags -version
+# java -XX:+PrintCommandLineFlags -version
 -XX:G1ConcRefinementThreads=8 -XX:GCDrainStackTargetSize=64 -XX:InitialHeapSize=266639552 -XX:MaxHeapSize=4266232832 -XX:+PrintCommandLineFlags -XX:ReservedCodeCacheSize=251658240 -XX:+SegmentedCodeCa
 che -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseG1GC -XX:-UseLargePagesIndividualAllocation
 openjdk version "11.0.3" 2019-04-16
 OpenJDK Runtime Environment (build 11.0.3+12-b304.10)
 OpenJDK 64-Bit Server VM (build 11.0.3+12-b304.10, mixed mode, sharing)
 ```
-3. **使用 -XX:+PrintFlagsInitial 或 -XX:+PrintFlagsFinal**
+### 3. 使用 -XX:+PrintFlagsInitial 或 -XX:+PrintFlagsFinal
+
 ```
->java -XX:+PrintFlagsInitial -version
+# java -XX:+PrintFlagsInitial -version
 [Global flags]
 ccstrlist AOTLibrary                               =                                           {product} {default}
       int ActiveProcessorCount                     = -1                                        {product} {default}

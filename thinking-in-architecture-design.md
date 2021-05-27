@@ -14,7 +14,7 @@ thumbnail:
 
 
 
-微服务架构设计
+### 微服务架构设计
 
 [架构演进](../../../../2019/09/01/approaches-to-architecture-development/)
 
@@ -30,9 +30,13 @@ thumbnail:
 
 [分布式事务](../../../..//2019/08/03/transations/)
 
-[RPC的实现demo](../../../../2019/06/23/implementing-rpc/)
+[RPC 的实现](../../../../2019/06/23/implementing-rpc/)
 
-#### Database
+### Database
 
-[MySQL的索引](../../../../2019/07/28/one-question-one-answer-for-db-index/)
+[MySQL](../../../../2019/07/28/one-question-one-answer-for-mysql/)
+
+[Mysql High Availabity](../../../../2020/09/05/mysql-high-availabity/)
+
+[MySQL Log](../../../../2020/03/21/mysql-log/)
 
