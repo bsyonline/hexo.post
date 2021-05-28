@@ -50,14 +50,14 @@ MySQL 会增加 3 个隐藏列：
 2. 当 DB_TRX_ID 大于等于 ReadView 的最小 ID 小于等于 ReadView 的最大 ID 时，
     2.1) 如果 DB_TRX_ID 等于当前的 DB_TRX_ID ，说明是自己的事务，则数据可见。 
 	2.2) 如果 DB_TRX_ID 在 ReadView 的未完成事务列表中，说明事务未提交，则数据不可见。如果不在，则说明事务已提交，数据可见。
-	
-**在 RR 隔离级别下，ReadView 会延用事务第一次生成的 ReadView ，而 RC 隔离级别下，每次查询会生成新的 ReadView **。
+
+**在RR 隔离级别下，ReadView 会延用事务第一次生成的 ReadView ，而 RC 隔离级别下，每次查询会生成新的 ReadView**。
 有了上边的概念，我们来分析一下前边的例子，假设 t1 表中有 2 条记录，是由 DB_TRX_ID=100 的事务插入的，事务已经提交。
 
 <img src="http://bsyonline.gitee.io/pic/20200502/20200929230446.png" alt="20200929230446" border="0" style="width:500px">
 
+首先看 RR 级别：
 
-##### 首先看 RR 级别：
 &ensp;&ensp;1)  Client1 开启了事务，假设它的 DB_TRX_ID=200 。Client1 修改了 id=12 的 name 为 C ，MySQL 会将 id=12 这条记录拷贝到 Undo Log 中，然后将 DB_ROLL_PTR 指向 Undo Log 中的这条记录，然后将 name 修改成 C ，这样就形成一个版本链。
 
 <img src="http://bsyonline.gitee.io/pic/20200502/20200929230614.png" alt="20200929230446" border="0" style="width:700px">
@@ -65,7 +65,9 @@ MySQL 会增加 3 个隐藏列：
 &ensp;&ensp;2)  当 Client1 查询时，会生成查询视图 ReadView([200],200) 。id=11 这条记录的 DB_TRX_ID=100 ，小于最小的未提交 DB_TRX_ID ，所以 id=11 这条记录是可见的。id=12 这条记录的 DB_TRX_ID=200 ，等于最大的未提交 DB_TRX_ID 说明是自己的事务，所以也是可见的。所以查到的结果就是 A 和 C 。
 &ensp;&ensp;3)  当 Client2 开启了事务，假设它的 DB_TRX_ID=300 ，生成对应的查询视图 ReadView([200],300) 。Client2 执行查询时，id=11 这条记录的 DB_TRX_ID=100 ，小于最小的未提交 DB_TRX_ID ，所以 id=11 这条记录是可见的。id=12 这条记录的 DB_TRX_ID=200 ，在未提交列表中，所以需要去 Undo Log 中找历史版本 DB_TRX_ID=100 ，最终查到的结果是 A 和 B 。
 &ensp;&ensp;4)  当 Client1 提交后，Client2 再次查询，ReadView 还是 ([200],300) ，所以查到的结果还是 A 和 B 。
-##### 与此类似，我们再来看看 RC 级别： 
+
+与此类似，我们再来看看 RC 级别： 
+
 &ensp;&ensp;1) 、 2） 、3）和上边是相同的。
 &ensp;&ensp;4)  当 Client1 提交后，Client2 再次查询，此时 ReadView 是新生成的 ([300],300) ，DB_TRX_ID=200 已经提交，所以 C 是可见的，最终查到的结果是 A 和 C 。
 

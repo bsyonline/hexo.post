@@ -26,7 +26,7 @@ thumbnail:
 
 [幂等设计](../../../../2019/07/31/understanding-design-with-idempotency/)
 
-[分布式锁](../../../../2019/06/14/lock/)
+[分布式锁](../../../../2019/05/19/distributed-lock/)
 
 [分布式事务](../../../..//2019/08/03/transations/)
 
