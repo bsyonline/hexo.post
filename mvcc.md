@@ -12,11 +12,11 @@ thumbnail:
 
 数据库有 4 种隔离级别，RU 、RC 、RR 和 Serializable ，MySQL 默认为 Repeatable Read 。t1 表有两条记录，如果有两个事务并发操作 t1 表如下： 
 
-<img src="http://bsyonline.gitee.io/pic/20200502/20200929221226.png" alt="20200929221405" border="0" style="width:500px">
+<img src="https://z3.ax1x.com/2021/05/30/2VCorQ.png" alt="20200929221226.png" border="0" style="width:600px">
 
 Client1 开启事务，将记录 2 的 name 修改为 C 。Client2 也开启事务，查询 t1 。不管 Client1 的事务是否提交，Client2 查询的结果和 Client1 开启事务之前是相同的，等 Client2 提交之后才能看到 Client1 修改的内容。
 如果将 MySQL 的隔离级别改成 Read Commited ，效果又会有不同。
-<img src="http://bsyonline.gitee.io/pic/20200502/20200929221405.png" alt="20200929221405" border="0" style="width:500px">
+<img src="https://z3.ax1x.com/2021/05/30/2VCTbj.png" alt="20200929221405.png" border="0" style="width:600px">
 
 这就是不可重复读的现象。
 
@@ -38,7 +38,7 @@ mysql> desc t1;
 
 实际在 MySQL 中的样子这样的：
 
-<img src="https://s1.ax1x.com/2020/03/20/86OpNR.png" alt="20200320100637" border="0" style="width:500px">
+<img src="https://s1.ax1x.com/2020/03/20/86OpNR.png" alt="20200320100637.png" border="0" style="width:500px">
 
 MySQL 会增加 3 个隐藏列：
 1. DB_TRX_ID：表示插入或更新的的最后一个事务 id 。
@@ -54,13 +54,13 @@ MySQL 会增加 3 个隐藏列：
 **在RR 隔离级别下，ReadView 会延用事务第一次生成的 ReadView ，而 RC 隔离级别下，每次查询会生成新的 ReadView**。
 有了上边的概念，我们来分析一下前边的例子，假设 t1 表中有 2 条记录，是由 DB_TRX_ID=100 的事务插入的，事务已经提交。
 
-<img src="http://bsyonline.gitee.io/pic/20200502/20200929230446.png" alt="20200929230446" border="0" style="width:500px">
+<img src="https://z3.ax1x.com/2021/05/30/2VP8Rf.png" alt="20200929230446.png" border="0" style="width:500px"/>
 
 首先看 RR 级别：
 
 &ensp;&ensp;1)  Client1 开启了事务，假设它的 DB_TRX_ID=200 。Client1 修改了 id=12 的 name 为 C ，MySQL 会将 id=12 这条记录拷贝到 Undo Log 中，然后将 DB_ROLL_PTR 指向 Undo Log 中的这条记录，然后将 name 修改成 C ，这样就形成一个版本链。
 
-<img src="http://bsyonline.gitee.io/pic/20200502/20200929230614.png" alt="20200929230446" border="0" style="width:700px">
+<img src="https://z3.ax1x.com/2021/05/30/2VPdds.png" alt="20200929230614.png" border="0" style="width:500px"/>
 
 &ensp;&ensp;2)  当 Client1 查询时，会生成查询视图 ReadView([200],200) 。id=11 这条记录的 DB_TRX_ID=100 ，小于最小的未提交 DB_TRX_ID ，所以 id=11 这条记录是可见的。id=12 这条记录的 DB_TRX_ID=200 ，等于最大的未提交 DB_TRX_ID 说明是自己的事务，所以也是可见的。所以查到的结果就是 A 和 C 。
 &ensp;&ensp;3)  当 Client2 开启了事务，假设它的 DB_TRX_ID=300 ，生成对应的查询视图 ReadView([200],300) 。Client2 执行查询时，id=11 这条记录的 DB_TRX_ID=100 ，小于最小的未提交 DB_TRX_ID ，所以 id=11 这条记录是可见的。id=12 这条记录的 DB_TRX_ID=200 ，在未提交列表中，所以需要去 Undo Log 中找历史版本 DB_TRX_ID=100 ，最终查到的结果是 A 和 B 。
