@@ -1,5 +1,5 @@
 ---
-title: RabbitMQ-Concepts-and-Glossary
+title: RabbitMQ Concepts and Glossary
 tags:
   - RabbitMQ
 category:
