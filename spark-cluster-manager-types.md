@@ -12,7 +12,7 @@ lede: "没有摘要"
 <!-- toc -->
 Spark 程序是一组运行在集群上的独立进程，进程之间通过 SparkContext 协调。Spark 程序包含两部分：Driver 程序（SparkContext）和 Executor 。SparkContext 能连接多种类型的 Cluster Manager （spark standalone cluster、Mesos、YARN），虽然 cluster manager 的类型多样，但是 Spark 运行机制基本相同。<!--more-->Driver 程序由用户启动，通过资源调度模块和 Executor 通信。在连接到 Cluster Manager 后，Spark 获得集群 Worker 节点上的 Executor （负责计算和存储数据的进程），将需要运行的代码发送到 Executor ，然后 SparkContext 发送 Task 到 Executor 去执行。示意如图：
 
-![mark](https://raw.githubusercontent.com/bsyonline/pic/master/20170531/234941814.png)
+<img src="https://z3.ax1x.com/2021/06/01/2KYw9J.png" alt="234941814.png" border="0" />
 
 每个 Spark 程序有自己的 Executor 进程，并且在程序生命周期内都是相互独立的，这也意味着不同的 Spark 程序之间无法共享数据，除非借助其他存储系统，如 HDFS 。
 
