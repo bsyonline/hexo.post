@@ -20,6 +20,66 @@ ZooKeeper 是一个开源的高性能分布式协调服务。ZooKeeper 基于 Pa
 
 [installation guide for zookeeper](../../../../2015/07/14/installation-guide-for-zookeeper)
 
+### 基本概念
+
+#### The ZooKeeper Data Model
+
+ZooKeeker 具有命名空间的概念，并且命名空间是有等级的。命名空间下的数据以一个树形结构存储，每个节点的路径都是用斜线分割的绝对路径，不能使用相对路径。每个节点都被称作 znode ，每个 znode 都可以存储数据，并维护一个 stat 结构，用来存储 version、acl 、timestamp 的信息。
+
+##### znode 分类
+
+1. 持久节点和顺序节点
+
+   znode 节点分持久节点 PERSISTENT 和临时节点 EPHEMERAL 。持久节点创建后一直存在，除非主动删除。
+
+2. 临时节点
+
+   临时节点和 session 绑定。session 结束，临时节点会被删除。临时节点只能是叶子节点，不能有子节点。
+
+3. 顺序节点
+
+   znode 也可以是有序的，顺序以自动生成，以 10 位数字标识，最大到 2 的 31 次幂。
+
+4. Container Node
+
+   
+
+5. TTL Node
+
+##### znode stat 的构成
+
+- **czxid** The zxid of the change that caused this znode to be created.
+- **mzxid** The zxid of the change that last modified this znode.
+- **pzxid** The zxid of the change that last modified children of this znode.
+- **ctime** The time in milliseconds from epoch when this znode was created.
+- **mtime** The time in milliseconds from epoch when this znode was last modified.
+- **version** The number of changes to the data of this znode.
+- **cversion** The number of changes to the children of this znode.
+- **aversion** The number of changes to the ACL of this znode.
+- **ephemeralOwner** The session id of the owner of this znode if the znode is an ephemeral node. If it is not an ephemeral node, it will be zero.
+- **dataLength** The length of the data field of this znode.
+- **numChildren** The number of children of this znode.
+
+#### ZooKeeper Sessions
+
+
+
+#### ZooKeeper Watches
+
+一次性，触发之后就失效了，如果需要再次监听，需要重新注册。不适合监听频繁变化的内容。
+
+变更事件由服务端发送给客户端，相同内容的监听是串行的，在一个监听过程完成之前，客户端不能创建新的相同的监听。
+
+watcher 在客户端，回调逻辑在客户端保存。
+
+#### Consistency Guarantees
+
+
+
+### 基本操作
+
+#### 常见问题和排错
+
 ### 选举机制
 
 #### Paxos 算法
@@ -96,19 +156,6 @@ LEADING：Leader 正常工作或广播数据更新。
 
 
 
-### 存储结构
-
-ZooKeeker 的存储结构是一个树形结构，每个节点是一个 znode ，每个 znode 都可以存储数据。
-
-#### znode 节点类型
-
-有 4 种节点类型：
-
-1. PERSISTENT 持久节点：创建后一直存在，除非主动删除。
-2. PERSISTENT_SEQUENTIAL 持久顺序节点
-3. EPHEMERAL 临时节点：生命周期和客户端连接相同。临时节点只能是叶子节点，不能有子节点。
-4. EPHEMERAL_SEQUENTIAL 临时顺序节点
-
 ### 客户端
 
 #### 连接 zkServer 流程
@@ -119,6 +166,10 @@ ZooKeeker 的存储结构是一个树形结构，每个节点是一个 znode ，
 2. 解析连接字符串，在 StaticHostProvider 中用 Collections.shuffle() 将 server 顺序打乱，目的是做负载均衡。
 3. 创建 ClientCnxn 对象，调用 start()  方法。
 4. 在 start() 中启动 2 个线程 SendThread 和 EventThread 。SendThread 从 server 地址列表里轮询取出地址尝试连接。
+
+
+
+
 
 #### 客户端连接状态
 
@@ -136,11 +187,13 @@ NOT_CONNECTED;  	// 未连接
 
 1. 配置管理
 
+   利用watch机制
+
    比如 HBase 用 zk 来管理集群配置信息，Kafka 用 zk 来管理 broker 信息。
 
 2. 命名服务
 
-   比如 DNS 服务
+   利用顺序节点自动生成唯一编号的特性。
 
 3. 分布式同步
 
@@ -148,6 +201,8 @@ NOT_CONNECTED;  	// 未连接
    2. leader 选举
 
 4. 集群管理
+
+   比如 DNS 服务
 
    比如 Dubbo 用 zk 做服务注册发现。Kafka 用 zk 做 consumer 端的重平衡。
 

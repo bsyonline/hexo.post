@@ -1,5 +1,5 @@
 ---
-title: Thinking in Architecture Design
+title: Architecture Design
 tags:
   - Interview
 category:
