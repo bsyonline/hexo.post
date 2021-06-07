@@ -47,7 +47,13 @@ Spark 是按照 DAG 图来进行的任务调度的。调度可分为两部分：
 >
 > Wide Dependency 指子 RDD 只依赖父 RDD 的所有的 partition 。
 
-② 划分好 stage ，Spark 会生成 FinalStage 并提交。根据依赖关系，判断 FinalStage 的父 stage 结果是否可用，如果父 stage 的结果不可用，则尝试迭代提交父 stage 。如果所有的父 stage 结果都可用，则提交 FinalStage 。③ stage 按 partition 数量拆分出 task 放入 TaskSet 提交给 TaskScheduler ，至此 DAGScheduler 调度结束。④ TaskScheduler 和 TaskSetManager 根据资源情况将 task 调度到最佳的 Executor 上进行计算。⑤ DAGScheduler 和 TaskScheduler 通过回调函数获取 Task 和 TaskSet 的状态，以及 Executor 的状态。当 Task 执行完成后，DAGScheduler 会获取 Task 执行结果。对于非 FinalStage 的 Task ，返回的是 MapStatus 对象，存储的是计算结果的位置信息，而对于 ResultTask 类型的 Task 返回的是结果本身，如果结果比较小，则直接放在 DirectTaskResult 中，如果结果很大，则将结果存储在 BlockManager 中，然后将 BlockId 返回给 DAGScheduler 。 
+② 划分好 stage ，Spark 会生成 FinalStage 并提交。根据依赖关系，判断 FinalStage 的父 stage 结果是否可用，如果父 stage 的结果不可用，则尝试迭代提交父 stage 。如果所有的父 stage 结果都可用，则提交 FinalStage 。
+
+③ stage 按 partition 数量拆分出 task 放入 TaskSet 提交给 TaskScheduler ，至此 DAGScheduler 调度结束。
+
+④ TaskScheduler 和 TaskSetManager 根据资源情况将 task 调度到最佳的 Executor 上进行计算。
+
+⑤ DAGScheduler 和 TaskScheduler 通过回调函数获取 Task 和 TaskSet 的状态，以及 Executor 的状态。当 Task 执行完成后，DAGScheduler 会获取 Task 执行结果。对于非 FinalStage 的 Task ，返回的是 MapStatus 对象，存储的是计算结果的位置信息，而对于 ResultTask 类型的 Task 返回的是结果本身，如果结果比较小，则直接放在 DirectTaskResult 中，如果结果很大，则将结果存储在 BlockManager 中，然后将 BlockId 返回给 DAGScheduler 。 
 
 **调度策略**
 
