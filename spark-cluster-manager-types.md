@@ -34,7 +34,7 @@ Spark 提供的一种简单部署模式，通常用来进行测试。
 
 通过 YARN 来调度 Spark 程序所需要的资源。YARN 模式有两种模式来启动 Spark 程序：YARN Cluster 和 YARN Client 。在 Cluster 模式中，Driver 程序运行在 master 进程中，程序初始化完成后 Client 可以结束。在 Client 模式中，Driver 程序运行在 client 进程中，master 只负责向 YARN 请求资源。
 
-![](https://raw.githubusercontent.com/bsyonline/pic/master/spark-on-yarn.png)
+<img src="https://z3.ax1x.com/2021/06/08/2sUHWq.png" alt="spark-on-yarn.png" border="0" />
 
 YARN cluster：
 
