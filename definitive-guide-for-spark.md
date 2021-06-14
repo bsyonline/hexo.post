@@ -1,9 +1,9 @@
 ---
 title: Definitive Guide for Spark
 tags:
-  - untag
+  - Spark
 category:
-  - uncategory
+  - Bigdata
 author: bsyonline
 lede: 没有摘要
 date: 2021-05-30 18:31:35
@@ -12,7 +12,7 @@ thumbnail:
 
 
 
-
+## Part I. Spark Core
 
 ### 1. Spark 简介
 
@@ -95,7 +95,7 @@ SparkContext 在初始化过程中需要将环境变量传递给 Executor ，如
 | Job             | 有多个 Task 组成由 Spark action 触发的并行计算单元。         |
 | Stage           | 每个 job 中，相同的 task 组成的集合。Stage 之间相互依赖。    |
 
-### Spark RDD
+### 4. Spark RDD
 
 RDD (resilient distributed dataset) 是分布式数据集，是 Spark 中最基本的数据单元。
 
@@ -203,7 +203,7 @@ Spark 作业提交后，会将 RDD 划分成多个 stage ，划分的依据就�
 
 随着数据量的增加，窄依赖的子 RDD 依赖的父 RDD 的 partition 数量数确定的，而宽依赖是数据量越大，子 RDD 依赖的父 RDD 的数量越多。
 
-### Spark 调度
+### 5. Spark 调度
 
 #### Spark Application 之间的调度
 
@@ -260,7 +260,7 @@ Spark 可以通过配置 `spark.scheduler.mode`  为 FAIR 来让任务公平共�
 
 默认情况下，池的属性为 `scheduling mode FIFO weight 1 minShare 0` 。
 
-### 序列化
+### 6. 序列化
 
 序列化对任何分布式系统的性能来说都至关重要。序列化对象慢或占用大量的字节将大大降低计算的性能。通常在 Spark 程序中，我们需要首先将序列化调整到最优。Spark 提供了两个序列化类库，以便在易用性和效率之间达到平衡。
 
@@ -286,7 +286,7 @@ val sc = new SparkContext(conf)
 
 如果不注册自定义类，Kryo 仍然会工作，不过需要将每一个对象的完全的类名保存起来，这会非常浪费资源。
 
-### 存储系统
+### 7. 存储系统
 
 Spark 任务会从外部存储系统中读取数据，所以将它放在尽可能近的地方是非常重要的。一般来说 Spark 程序和数据放在相同节点是效率最高的，如果无法保证相同节点，退一步讲，应将程序和数据放在同一网络环境下。
 
@@ -306,11 +306,11 @@ Spark 在运行期间是网络绑定的，使用万兆或更大的带宽程序�
 
 Spark 可以在每个节点上扩展到十多个 CPU 内核，因为它是线程之间最小共享的。
 
-### Shuffle
+### 8. Shuffle
 
 Shuffle 是 Spark 中重新分布数据的机制，它会在机器之间复制数据，是一个复杂且开销很大的操作。
 
-### 持久化
+### 9. 持久化
 
 将数据集持久化或缓存到内存里是 Spark 的重要能力之一。在持久化数据集时，在内存中参与计算的数据集被存储在每一个节点上，其他的 action 可以快速的重用这些数据集。缓存是迭代算法和快速交互的关键。
 
@@ -351,7 +351,7 @@ Spark 会在执行 shuffle 操作时自动持久化一些中间数据。这样�
 
 ##### 累加器
 
-### Spark 调优
+### 10. Spark 调优
 
 Spark 调优可以分几个方面来说，首先是程序和资源调优，需要遵守一些基本规范，是所有调优的基础。再就是针对作业运行过程中出现的问题如数据倾斜、shuffle 进行调优，减少或避免这些问题从而提高执行效率。
 
@@ -381,19 +381,33 @@ shuffle 算子可能导致数据倾斜。对于其中一个 RDD 的数据量比�
 
 ##### 6. 使用 Map-Side 预聚合的 Shuffle 操作
 
-
+如果因为业务需要，必须使用 shuffle 操作，尽量使用 map-side 预聚合的算子。比如使用 reduceByKey 或 aggregateByKey 代替 groupByKey ，因为 reduceByKey 或 aggregateByKey 都会使用用户自定义函数对节点本地的相同 key 进行聚合，而 groupByKey 不会。
 
 ##### 7. 使用高性能的算子
 
+reduceByKey 或 aggregateByKey 比 groupByKey 性能高，原因见第 6 条。
 
+使用 mapPartitions 代替 map 。mapPartitions 会一次处理一个 partition 的数据，效率高，但是需要的内存更多。
+
+用 foreachPartitions 代替 foreach 。
+
+使用 filter 之后进行 coalesce 操作。
+
+使用 repartitionAndSortWithinPartitions 代替 repartition 和 sort 。repartitionAndSortWithinPartitions 可以一边进行重分区的 shuffle 操作，一边进行排序，比先进行分区再进行排序性能要高。
 
 ##### 8. 广播大变量
 
-
+在开发过程中，需要在算子中使用外部变量时，可以使用 broadcast 来提升性能。如果不使用 broadcast ，Spark 会将变量复制成多个副本，通过网络传输到 task 。如果变量较大，会增加网络开销，还会增加 executor 的内存占用。使用 broadcat 每个 executor 中只保存一份副本，所有 task 共享同一份副本。
 
 ##### 9. 使用 Kryo 优化序列化性能
 
+在 Spark 中有 3 个地方用到了序列化：
 
+1. 在算子中使用外部变量，变量会被序列化后再进行网络传输。
+2. 将自定义类型作为 RDD 的泛型时，自定义类型的对象都会进行序列化。
+3. 使用序列化的持久策略时。
+
+以上几种都可以使用 Kryo 进行序列化。Spark 默认使用 Java 的序列化。Kryo 比 Java 序列化的性能要高，但是要求注册需要序列化的类型。
 
 ##### 10. 优化数据结构
 
@@ -415,9 +429,23 @@ Spark 是基于内存的，所以合理地管理内存会提高程序的性能�
 
 #### 资源调优
 
+##### num-executors
 
+Spark 启动多少个 executor 来执行作业。如果不设置则只会启动很少的 executor 来执行。一般设置 50-100 比较合适，设置太少，无法充分利用集群资源，设置太多，大部分无法获得需要的资源。
 
-##### 内存调优
+##### executor-memory
+
+每个 executor 所占内存。num-executors * executor-memory 不要超过最大内存总量。
+
+##### executor-core
+
+于设置每个 Executor 进程的 CPU core 数量。每个 executor 的 CPU core 2-4 个，最好的应该就是一个 CPU core 对应两到三个 task 。
+
+##### spark.default.parallelism
+
+设置每个 stage 的默认 task 数量。如果不设置这个参数，Spark 默认会根据 hdfs 的 block 数量来设置 task 的数量，默认是一个 block 对应一个 task 。建议设置为 num-executors * executor-memory 的 2-3 倍。一般500 - 1000 是比较合理的范围。
+
+##### spark.storage.memoryFraction
 
 在 Spark 中内存被用来执行计算（shuffle、join、sort、aggregations）和存储数据（缓存和广播数据）。执行计算和存储数据使用的是同一块区域（M），如果执行计算的内存没有被使用，存储数据可以占用这些内存，反之，执行计算也可以使用没有被存储占用的内存。如果一个程序没有使用缓存，那么程序可以将所有内存用来执行计算。虽然执行计算可以释放存储以获取更多的内存，但是缓存在不超过阈值（R）的情况下，才会被释放。
 
@@ -450,21 +478,31 @@ GC 调优的第一步是收集有关垃圾收集发生频率和花费的时间�
 
 剩下的工作就是在我们修改 GC 的参数后，GC 统计信息是否有变化。
 
-##### 并行度
+#### 数据倾斜
 
-Spark 的 shuffle 操作会在每一个任务中创建散列表进行计算，所以结果会很大，有时候会出现 OutOfMemoryError 。这时我们可以增加任务的并行度使每个 shuffle 的输入更小，执行的更快。shuffle 操作的默认使用父 RDD 的分区数量，可以通过修改 ```spark.default.parallelism``` 或方法输入参数来改变默认数量。一般推荐的数量是每个 CPU  2-3 个任务。
+在进行 shuffler 时，需要将各节点相同的 key 拉到同一个节点的同一个 task 进行处理，如果一个 key 的数据量特别大，就会发生数据倾斜。一个 stage 的 task 要全部执行完成才能进行下一个 stage ，所以一个 task 执行缓慢会导致整个作业执行耗时变长。
 
-##### 数据位置
+解决数据倾斜的方案：
 
+1. 数据预处理。由于数据分布不均，可以先对数据进行预处里，使数据均匀分布，再使用 Spark 进行处理，这样就可以解决 Spark 作业执行慢的问题。但是本身并没有解决数据分布不平均，只是将数据倾斜出现的时间提前到预处理阶段。
+2. 过滤导致数据倾斜的 key。如果有少量的 key 导致数据倾斜，并且去除这些 key 对结果影响不大。
+3. 提高 shuffle 的并行度。增加并行度，会减少每个 task 处理数据的数量，可以缓解数据倾斜的影响。
+4. 局部聚合+全局聚合。比如对数据倾斜的 key 加上随机数前缀，先在本地进行聚合，然后再去掉前缀再进行全局聚合。仅适用于 join 类的 sheffle 操作。
+5. 将 reduce join 转化成 map join 。如果 join 操作的其中一个集合较小，可以使用这种方法，通过遍历比较，再 map 端完成 join 操作。
 
+## Part II. Spark SQL
 
+### 简介
 
+Spark SQL 是 Spark 的一个分布式 SQL 查询引擎模块，提供了一个 编程抽象 DataFrame 。和 Hive 类似，Spark SQL 将 SQL 转化为 RDD 并提交到集群上运行。
 
+DataFrame 是一个数据集，概念上类似数据库表。
 
+DataSet 是 1.6 添加的新接口，是 DataFrame 之上更高一级的抽象。
 
-### Spark SQL
+### DataFrame 操作
 
+#### 创建 DataFrames
 
-
-### Spark Streaming
+## Part III. Spark Streaming
 
