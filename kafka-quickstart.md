@@ -179,15 +179,15 @@ Producer 发送消息过程如下：
 1. Producer 向 broker 提交连接请求，broker 会返回 broker controller 的地址。
 2. Producer 向 broker controller 发送请求，获取当前 topic 的所有 partition 的 leader 地址。broker 从 zk 中查找指定 topic 的所有 partition leader 信息返回给 producer 。
 3. Producer 收到 partition leader 信息后，根据消息路由策略找到要发送的 partition leader ，并发送消息。
-4. Partition leader 收到消息，并将消息写到 log 中，然后通知 ISR 中的 follower 。follower 从 leader 同步消息，并返回 ACK 。
-5. Partition leader 收到所有 follower 的 ACK 后，修改 HW 。 然后 consumer 就可以消费到 HW 的消息。
+4. Partition leader 收到消息，并将消息写到 log 中，然后通知 ISR 中的 follower 。follower 从 leader 同步消息，并返回 ack 。
+5. Partition leader 收到所有 follower 的 ack 后，修改 HW 。 然后 consumer 就可以消费到 HW 的消息。
 
 消息的接收者，从 broker 读取消息。Consumer 的消费过程如下：
 
 1. Consumer 向 broker 集群提交连接请求，broker 返回 broker controller 的地址。
 2. consumer 发送 topic 信息给 broker controller ，broker controller 会为 consumer 分配一个或多个 partition leader ，并将 partition 的 offset 发送给 consumer 。
-3. Consumer 消费 partition leader 中的消息，消费完成后发送 ACK 。
-4. Broker 收到 ACK 后更新 offset ，并保存到 __consumer_offset 中。
+3. Consumer 消费 partition leader 中的消息，消费完成后发送 ack 。
+4. Broker 收到 ack 后更新 offset ，并保存到 __consumer_offset 中。
 
 #### 消息路由策略
 
@@ -196,3 +196,17 @@ Producer 发送消息过程如下：
 如果没有指定 partition ，但是指定了 key ，则按照 key hash 对 partition 数量取模，确定 partition 。
 
 如果 partition 和 key 均为指定，则轮询写入。
+
+#### HW 截断机制
+
+当原 Leader 宕机后再次恢复时，LEO 会退回到 HW 位置，然后从新的 Leader 重新同步数据。
+
+#### 消息发送的可靠性
+
+通过 request.required.acks 参数进行设置。
+
+0：异步发送，不需要返回 ack 。效率最高，可靠性最低。
+
+1：同步发送。默认。producer 发消息给 broker ，leader partition 接到消息之后就返回 ack 。producer 收到 ack 后再发送下一条消息。如果 producer 没有收到 ack ，则会重发消息。
+
+-1：同步发送。producer 发消息给 broker ，leader partition 接到消息之后向 follower partition 同步消息，所有 follower partition 都同步完成，再返回 ack 。producer 收到 ack 后再发送下一条消息。如果 producer 没有收到 ack ，则会重发消息。很少会出现消息丢失的情况，但是会存在消息重复。
