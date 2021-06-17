@@ -209,4 +209,13 @@ Producer 发送消息过程如下：
 
 1：同步发送。默认。producer 发消息给 broker ，leader partition 接到消息之后就返回 ack 。producer 收到 ack 后再发送下一条消息。如果 producer 没有收到 ack ，则会重发消息。
 
--1：同步发送。producer 发消息给 broker ，leader partition 接到消息之后向 follower partition 同步消息，所有 follower partition 都同步完成，再返回 ack 。producer 收到 ack 后再发送下一条消息。如果 producer 没有收到 ack ，则会重发消息。很少会出现消息丢失的情况，但是会存在消息重复。
+-1：同步发送。producer 发消息给 broker ，leader partition 接到消息之后向 follower partition 同步消息，所有 follower partition 都同步完成，再返回 ack 。producer 收到 ack 后再发送下一条消息。如果 producer 没有收到 ack ，则会重发消息。很少会出现消息丢失的情况，但是会存在消息重复接收。
+
+#### Leader Partition 选举
+
+Leader Partition 宕机后，broker controller 会从 ISR 中选一个 partition 作为 leader 。如果 ISR 没有 partition ，则必须等待 ISR 中有 partition 后才进行选举，此种策略可用性较低。通过 unclean.leader.election.enable=true ，来设置当 ISR 中没有 partition 时，选择一个未宕机的 partition 作为 leader 。
+
+#### 什么情况下会出现重复消费？
+
+1. 在 consumer 消费完一条消息，准备还没有提交 offset 时，自动提交时间到了。
+2. 在 consumer 消费完一条消息，准备还没有提交 offset 时，发生 rebalance ，其他 consumer 可能会重复消费该条消息。
