@@ -1,5 +1,5 @@
 ---
-title: 单例模式
+title: Singleton Design Pattern
 date: 2016-08-02 00:00:47
 tags:
  - Interview
