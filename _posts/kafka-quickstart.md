@@ -140,7 +140,7 @@ Partition Follower 是 Leader Partition 的备份，只会从 Leader Partition �
 
 #### ISR
 
-In-Sync Replicas，副本同步列表，由 Leader 维护。如果 partition 和 Leader partition 连接不上，Leader 会将 broker id 从 ISR 移到 OSR（Outof-Sync Replicas）。ISR + OSR = AR（Assingd Replicas）。
+In-Sync Replicas，副本同步列表，由 Leader Partition 维护。如果 Follower Partition 和 Leader Partition 连接不上，Leader 会将 broker id 从 ISR 移到 OSR（Outof-Sync Replicas）。ISR + OSR = AR（Assingd Replicas）。
 
 #### Segment
 
@@ -152,7 +152,7 @@ Kafka 消息顺序写入磁盘，并进行分段存储，每个日志段文件�
 
 #### Broker Controller
 
-多个 broker 中选举出一个 leader 叫做 broker controller ，负责整个集群的 partition 和 replicas 的状态。Zookeeper 负责 Broker Controller 的选举，Broker Controller 负责 Partition Leader 的选举。
+多个 broker 中选举出一个 leader 叫做 broker controller ，负责整个集群的 partition 和 replicas 的状态。ZooKeeper 负责 Broker Controller 的选举，Broker Controller 负责 Partition Leader 的选举。
 
 #### HW
 
@@ -164,11 +164,11 @@ Log End Offset，日志最后消息的偏移量。LEO 是每个 partition 自己
 
 #### Coordinator
 
-Coordinator 是指运行在每个 broker 上的 group Coordinator 进程，用于管理 Consumer Group 中的成员的 offset 和 rebalance 。一个 Coordinator 可以管理多个 Consumer Group 。
+Coordinator 是指运行在每个 broker 上的 group Coordinator 进程，用于管理 Consumer Group 中的成员的 offset 和 rebalance 。一个 Coordinator 可以管理多个 ConsumerGroup 。
 
 #### Rebalance
 
-当 Consumer Group 中的 Consumer 数量发生变化或 Topic 中的 partition 数量发生变化时，partition 和 consumer 的对应关系会（可能会）发生变化，这个过程叫做 rebalance 。rebalance 使 Consumer Group 及 broker 集群具有高可用性和伸缩性，但是在 rebalance 期间，整个 broker 集群不可用。
+当 Consumer Group 中的 Consumer 数量发生变化或 Topic 中的 partition 数量发生变化时，partition 和 consumer 的对应关系会（可能会）发生变化，这个过程叫做 rebalance 。rebalance 使 ConsumerGroup 及 broker 集群具有高可用性和伸缩性，但是在 rebalance 期间，整个 broker 集群不可用。
 
 ### 原理
 
@@ -178,16 +178,17 @@ Producer 发送消息过程如下：
 
 1. Producer 向 broker 提交连接请求，broker 会返回 broker controller 的地址。
 2. Producer 向 broker controller 发送请求，获取当前 topic 的所有 partition 的 leader 地址。broker 从 zk 中查找指定 topic 的所有 partition leader 信息返回给 producer 。
-3. Producer 收到 partition leader 信息后，根据消息路由策略找到要发送的 partition leader ，并发送消息。
-4. Partition leader 收到消息，并将消息写到 log 中，然后通知 ISR 中的 follower 。follower 从 leader 同步消息，并返回 ack 。
-5. Partition leader 收到所有 follower 的 ack 后，修改 HW 。 然后 consumer 就可以消费到 HW 的消息。
+3. Producer 收到 leader partition 信息后，根据消息路由策略找到要发送的 leader partition 并发送消息。
+4. Leader partition  收到消息，并将消息写到 log 中，然后通知 ISR 中的 follower partition 。Follower partition 从 leader partition 同步消息，并返回 ack 。
+5. Leader partition  收到所有 follower partition  的 ack 后，修改 HW 。 然后 consumer 就可以消费到 HW 之前的消息。
 
 消息的接收者，从 broker 读取消息。Consumer 的消费过程如下：
 
 1. Consumer 向 broker 集群提交连接请求，broker 返回 broker controller 的地址。
-2. consumer 发送 topic 信息给 broker controller ，broker controller 会为 consumer 分配一个或多个 partition leader ，并将 partition 的 offset 发送给 consumer 。
-3. Consumer 消费 partition leader 中的消息，消费完成后发送 ack 。
-4. Broker 收到 ack 后更新 offset ，并保存到 __consumer_offset 中。
+2. Consumer 发送 topic 信息给 broker controller 。
+3. Broker controller 会为 consumer 分配一个或多个 leader partition  ，并将 partition 的 offset 发送给 consumer 。
+4. Consumer 从 offset 位置开始消费 leader partition 中的消息，消费完成后发送 ack 。
+5. Leader partition 收到 ack 后更新 offset ，并保存到 __consumer_offset 中。
 
 #### 消息路由策略
 
@@ -195,7 +196,7 @@ Producer 发送消息过程如下：
 
 如果没有指定 partition ，但是指定了 key ，则按照 key hash 对 partition 数量取模，确定 partition 。
 
-如果 partition 和 key 均为指定，则轮询写入。
+如果 partition 和 key 均未指定，则轮询写入。
 
 #### HW 截断机制
 
@@ -219,3 +220,9 @@ Leader Partition 宕机后，broker controller 会从 ISR 中选一个 partition
 
 1. 在 consumer 消费完一条消息，准备还没有提交 offset 时，自动提交时间到了。
 2. 在 consumer 消费完一条消息，准备还没有提交 offset 时，发生 rebalance ，其他 consumer 可能会重复消费该条消息。
+
+#### 什么情况下会丢数据？
+
+1. 如果 request.required.acks 设置为 0 ，消息发送了，但是 broker 宕机，消息就丢了。
+2. 如果 request.required.acks 设置为 1，消息发送给 leader partition ，leader partition 返回 ack 后，还没有同步到 follower partition ，leader partition 宕机，消息丢失。
+3. 如果 request.required.acks 设置为 -1，消息发送给 leader partition，所有 follower partition 同步完成后返回 ack 给 leader partition ，leader partition 再返回 ack 给 producer ，大部分情况下不会丢消息。但是在极端情况下，broker 接收到消息，将消息写到 log 中，此时数据还在 oscache 中，尚未刷写到磁盘上，此时 broker 宕机，消息丢失。
