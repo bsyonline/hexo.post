@@ -17,6 +17,8 @@ thumbnail:
 
 
 
+### 常用配置
+
 #### 关闭服务检查
 
 默认会检查服务提供者状态，如果服务提供者没有启动，消费者在启动时会报错。这就需要服务提供者先于消费者启动，但是有时候不清楚服务的调用顺序，又或者服务之间存在循环调用，那么就需要关闭服务检查。
@@ -489,3 +491,50 @@ System.out.println("执行完成，耗时 " + ((System.currentTimeMillis() - sta
 #### 属性配置优先级
 
 方法级最高，服务级次之，全局最低。消费者端优先，提供者端次之。
+
+### SPI 机制
+
+#### @SPI
+
+JDK SPI
+
+JDK 标准的 SPI 配置文件在 META-INF/services 下，文件名为接口的全限定名，内容是接口的实现类全限定名，一个实现类一行，通过 ServiceLoader 加载，会一次性实例化扩展点所有实现。
+
+Dubbo SPI
+
+Dubbo SPI 的配置文件在 META-INF/dubbo 下，文件名为接口的全限定名，内容为 kv 格式，一个实现类一行，接口需要使用 @SPI 注解。
+
+#### @Adaptive
+
+加在实现类上优先级最高。
+
+通过 URL 获取不到对应的类，则使用 SPI default 。
+
+加在方法上，可以通过 value 和 URL 中指定的 key 来匹配获取实现类。
+
+#### @Activate
+
+配合 getActivateExtension() 方法选择实现。
+
+加了 @Activate 注解的实现类才能被匹配到。
+
+getActivateExtension(URL url, String[] values, String group) 方法可以通过 group 和实现类的 key 进行匹配，两者是**或**的关系。
+
+@Activate 注解上可以指定 group 和 value ，两者是**并**的关系。
+
+@Activate 注解的 value 通过 URL 的 parameter 进行匹配。
+
+```java
+@Activate(group = {"online", "offline"}, order = 3, value = "rmb")
+public class CardPay implements Payment { 
+}
+```
+
+```java
+URL url = URL.valueOf("dubbo://localhost:20880?rmb=100");
+or
+url = url.addParameter("rmb", "100");
+```
+
+@Activate 注解 order 越小排序越靠前。
+
