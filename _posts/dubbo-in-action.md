@@ -506,11 +506,17 @@ Dubbo SPI 的配置文件在 META-INF/dubbo 下，文件名为接口的全限定
 
 #### @Adaptive
 
-加在实现类上优先级最高。
+@Adaptive 有两种方式：
 
-通过 URL 获取不到对应的类，则使用 SPI default 。
+1. 加在类上
 
-加在方法上，可以通过 value 和 URL 中指定的 key 来匹配获取实现类。
+   加在实现类上优先级最高。不论 URL 中是否能够匹配，@Adaptive 标注的类始终会生效。加在类上通常为固定实现，Dubbo 中有 2 处：AdaptiveExtensionFactory 和 AdaptiveCompiler 。
+
+2. 加在方法上
+
+   默认会使用 javaassist 生成一个类 接口名+$Adaptive ，参数为 URL 类型，否则不能生成自适应类。
+
+   通过 URL 获取不到对应的类，则使用 SPI default 。可以通过 value 和 URL 中指定的 key 来匹配获取实现类。
 
 #### @Activate
 
@@ -537,4 +543,8 @@ url = url.addParameter("rmb", "100");
 ```
 
 @Activate 注解 order 越小排序越靠前。
+
+#### Wrapper
+
+AOP
 
