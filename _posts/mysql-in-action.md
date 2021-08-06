@@ -213,6 +213,28 @@ change buffer 除了在读数据页到内存时触发 merge ，后台线程也�
 
 > 如果在更新后立刻进行查询，那么在写入 change buffer 后立刻会触发 merge ，则 change buffer 的效果无法体现。
 
+#### order by
+
+order by 的执行流程（单行长度比较小）：
+
+1. 初始化 sort_buffer，确定要放入的查询字段。
+2. 从索引中找到第一条满足条件记录的主键 id ，再到主键索引中取出整行，找出查询字段放入 sort_buffer 。
+3. 从索引中取下一条记录的主键 id ，重复步骤 2 ， 直到找到不满足条件的记录为止。
+4. 对 sort_buffer 中的数据按照排序字段做快速排序。
+5. 按排序结果取 limit 行返回客户端。 
+
+上边的流程是一行记录的长度小于 MySQL 的规定值，如果单行长度超过这个值，执行流程略有不同：
+
+1. 初始化 sort_buffer，只放入排序字段和主键 id 。
+2. 从索引中找到第一条满足条件记录的主键 id ，再到主键索引中取出整行，找出排序字段和主键 id 放入 sort_buffer 。
+3. 从索引中取下一条记录的主键 id ，重复步骤 2 ， 直到找到不满足条件的记录为止。
+4. 对 sort_buffer 中的数据按照排序字段做排序。
+5. 按排序结果取 limit 行，并按照主键 id 回原表中取出查询字段返回客户端。 
+
+> 修改一行记录长度的判定阈值：
+>
+> SET max_length_for_sort_data = 16；
+
 ### 3. 执行计划
 
 Explain 会展示 MySQL 优化器关于语句执行计划的信息，也就是说会解释 MySQL 将如何处理语句。
@@ -536,16 +558,19 @@ MySQL 优化器无法精确知道执行的记录数，只能根据索引的区�
 
 ### 4. 日志
 
-#### Bin Log
+#### Binary Log
 
-Bin Log 是 MySQL Server 层的一种日志，用来保存数据库的更改（表的更改和数据的更改）事件。Bin Log 不会记录 select 操作。Bin Log 的作用主要用来做复制。
-Bin Log 有 3 种格式：
+Binary Log 是 MySQL Server 层的一种日志，用来保存数据库的更改（表的更改和数据的更改）事件。Binlog 不会记录 select 操作。Binlog 的作用主要用来做复制。
 
-1. statement ，记录每一条会修改数据的 sql 。日志量少，但是需要额外保存 sql 执行时的信息。
-2. row ，记录修改的记录。日志量大，每一行数据的修改都会保存。
-3. mixed 。
+##### binlog 格式
 
-可以通过命令查看 MySQL 的 Bin Log 格式：
+Binlog 有 3 种格式：
+
+1. statement ，记录每一条会修改数据的 sql 。日志量少，但是需要额外保存 sql 执行时的信息。但是由于相同的sql语句在主备执行结果可能不一致（delete from t1 where a>=xx and b>=xx limit 1），所以出现了 row 格式。
+2. row ，记录修改的记录。日志量大，每一行数据的修改都会保存。row 格式不会造成主备不一致，但是可能会占用极大空间（比如删除 100 万条记录，就需要把这 100 万记录都存下来），所以就有了第三种方式 mixed 。
+3. mixed 。MySQL 会自己判断 sql 语句是否会造成主备不一致，如果可能不一致就用 row ，如果不会就用 statement 。
+
+可以通过命令查看 MySQL 的 binlog 格式：
 
 ```
 mysql> show global variables like '%binlog_format';
@@ -556,13 +581,53 @@ mysql> show global variables like '%binlog_format';
 +---------------+-------+
 ```
 
-Bin Log 为什么不合适做异常恢复？
-Bin Log 是通过 Bin Log 文件来恢复数据，这些数据是持久化到磁盘的，而异常掉电时，内存中的数据是没有写到磁盘的，所以内存中的这些数据是无法通过 Bin Log 来恢复的，会造成数据丢失。
+##### 数据恢复
+
+通常情况下用的较多的是 row 格式。因为 row 格式记录修改所有行的信息，在数据恢复时可以非常方便的操作。mixed 格式虽然可以利用 statment 格式的优点，同时又避免了数据不一致的风险，但是在数据恢复时需要结合上下文而不能直接回放 sql 。标准的做法是用 mysqlbinlog 工具解析之后，再把结果放到 MySQL 中执行。
+
+##### 循环复制
+
+循环复制就是在双M架构 AB 互为主备，A 的更新操作会生成一条 binlog ，这条 binlog 会发送给 B ，B 执行完 binlog 后也会生成一条 binlog ，B 生成的 binlog 又会发给 A ，A 又会再次执行更新，然后生成新的 binlog 再发给 B ，循环往复，造成循环复制。
+
+如何解决循环复制？
+
+给每条 binlog 加上一个 server_id （机器编号），A 生成 binlog ，server_id 假设记为 001 。binlog 发给 B 后，B 发现 001 和自己的机器编号不一致，则执行 binlog ，然后生成 binlog ，但是这个 binlog 的 server_id 还是 001 。当这个 binlog 在发给 A 后，A 发现 server_id 和自己的机器编号相同，则丢弃这条 binlog 。
+
+##### Binlog 为什么不合适做异常恢复？
+
+Binlog 是通过 Binlog 文件来恢复数据，这些数据是持久化到磁盘的，而异常掉电时，内存中的数据是没有写到磁盘的，所以内存中的这些数据是无法通过 Binlog 来恢复的，会造成数据丢失。
 Redo Log 记录的是内存中还没有写到磁盘的数据，所以 Redo Log 用来做异常恢复不会造成内存中的数据丢失。
 
 ##### 怎么知道 binlog 是完整的？
 
 statement 格式最后会有 COMMIT；row 格式最后会有 XID event 。
+
+##### binlog 的写入机制
+
+先把日志写到 binlog cache，事务提交时再把 binlog  cache 写到 binlog 文件中，然后清空 binlog cache 。
+
+一个 事务的 binlog 不能被拆开，要确保一次写入。
+
+每个线程都有自己的 binlog cache ，但是共享同一个 binlog 文件。
+
+写 binlog 包括 2 个阶段的工作：
+
+1. write page cache ，写系统内存
+2. fsync ，持久化到磁盘
+
+sync_binlog 参数控制这两个阶段的时机：
+
+1. sync_binlog=0，表示每次提交事务都只 write，不 fsync；
+2. sync_binlog=1，表示每次提交事务都会执行 fsync；
+3. sync_binlog=N，表示每次提交事务都 write，但累积 N 个事务后才 fsync。
+
+##### binlog 复制过程
+
+1. 备库设置从主库什么位置开始同步 binlog 数据。
+2. 备库启动两个线程 io_thread 和 sql_thread ，io_thread 负责和主库建立连接。
+3. 建立连接后，主库读取 binlog 传给备库。
+4. 备库收到 binlog 后写到本地 relay log 。
+5. sql_thread 从 relay log 中读取日志，进行解析并执行。
 
 #### Redo Log
 
@@ -1365,7 +1430,22 @@ Slave_IO_Running 和 Slave_SQL_Running 都为 YES 则配置成功。
 
 > 如果 Slave_IO_Running 为 connecting 可根据  Last_IO_Error 检查
 
-### 4. 高可用方案
+
+
+### 4. 主从切换
+
+可靠性优先策略
+
+1. 判断备库的 seconds_behind_master ，是否小于某值（比如 3 秒），如果不小于则等待，直到小于某值再进行第二步。
+2. 把主库设置成 readonly = true 。
+3. 判断备库的 seconds_behind_master 是否等于 0 ，如果不等于则等待，直到等于 0 将备库设置成 readonly = false 。
+4. 把业务切换到备库。
+
+可用性优先策略
+
+
+
+### 5. 高可用方案
 
 高可用架构分成以下几部分：UI 层，API 层，监控服务层，管理数据库，生产数据库集群。
 
