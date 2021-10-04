@@ -321,3 +321,558 @@ Yarn 有 3 种调度器
 
 ### 8. Flume
 
+#### Flume 简介
+
+Flume 时一个分布式海量日志聚合系统。
+
+<a href="https://imgtu.com/i/gZccy8"><img src="https://z3.ax1x.com/2021/05/02/gZccy8.png" alt="gZccy8.png" border="0" /></a>
+
+Flume agent 由 Source 、Sink 和 Channel 。Flume 的数据流由 Event 构成，Event 是其基本单位。Event 由 Agent 外部的 Source 生成，并推入到 Channel 中，由 Sink 处理 Event 。
+
+#### Flume 部署方案
+
+##### 单 Agent
+
+<a href="https://imgtu.com/i/gZccy8"><img src="https://z3.ax1x.com/2021/05/02/gZccy8.png" alt="gZccy8.png" border="0" /></a>
+
+##### 多 Agent 串联
+
+<a href="https://imgtu.com/i/gZgq3t"><img src="https://z3.ax1x.com/2021/05/02/gZgq3t.png" alt="gZgq3t.png" border="0" /></a>
+
+##### 多 Agent 合并
+
+<a href="https://imgtu.com/i/gyBZ9O"><img src="https://z3.ax1x.com/2021/05/15/gyBZ9O.png" alt="gyBZ9O.png" border="0" /></a>
+
+##### 多路复用
+
+<a href="https://imgtu.com/i/gZgOjf"><img src="https://z3.ax1x.com/2021/05/02/gZgOjf.png" alt="gZgOjf.png" border="0" /></a>
+
+#### Flume 安装
+
+解压
+
+```
+tar -zxf apache-flume-1.9.0-bin.tar.gz
+mv apache-flume-1.9.0-bin flume
+```
+
+配置
+
+```
+cd flume/conf
+mv flume-env.sh.template flume-env.sh
+```
+
+设置 JAVA_HOME 。
+
+#### Flume 使用示例
+
+##### netcat 测试
+
+创建 conf 文件
+
+```
+# example.conf: A single-node Flume configuration
+
+# Name the components on this agent
+a1.sources = r1
+a1.sinks = k1
+a1.channels = c1
+
+# Describe/configure the source
+a1.sources.r1.type = netcat
+a1.sources.r1.bind = localhost
+a1.sources.r1.port = 44444
+
+# Describe the sink
+a1.sinks.k1.type = logger
+
+# Use a channel which buffers events in memory
+a1.channels.c1.type = memory
+a1.channels.c1.capacity = 1000
+a1.channels.c1.transactionCapacity = 100
+
+# Bind the source and sink to the channel
+a1.sources.r1.channels = c1
+a1.sinks.k1.channel = c1
+```
+
+启动 flume
+
+```
+bin/flume-ng agent --conf conf --conf-file job/single-node.conf --name a1 -Dflume.root.logger=INFO,console
+```
+
+发送 
+
+```
+telnet localhost 44444
+hello
+world
+```
+
+##### 监控目录中的文件
+
+创建 dir-hdfs.conf
+
+```
+a3.sources = r3
+a3.sinks = k3
+a3.channels = c3
+
+# Describe/configure the source
+a3.sources.r3.type = spooldir
+a3.sources.r3.spoolDir = /opt/flume/upload
+a3.sources.r3.fileSuffix = .COMPLETED
+a3.sources.r3.fileHeader = true
+a3.sources.r3.ignorePattern = ([^ ]*\.tmp)
+
+# Describe the sink
+a3.sinks.k3.type = hdfs
+a3.sinks.k3.hdfs.path = hdfs://hadoop1/flume/upload/%Y%m%d/%H
+a3.sinks.k3.hdfs.filePrefix = upload-
+a3.sinks.k3.hdfs.round = true
+a3.sinks.k3.hdfs.roundValue = 1
+a3.sinks.k3.hdfs.roundUnit = hour
+a3.sinks.k3.hdfs.useLocalTimeStamp = true
+a3.sinks.k3.hdfs.batchSize = 100
+a3.sinks.k3.hdfs.fileType = DataStream
+a3.sinks.k3.hdfs.rollInterval = 600
+a3.sinks.k3.hdfs.rollSize = 134217700
+a3.sinks.k3.hdfs.rollCount = 0
+a3.sinks.k3.hdfs.minBlockReplicas = 1
+
+# Use a channel which buffers events in memory
+a3.channels.c3.type = memory 
+a3.channels.c3.capacity = 1000
+a3.channels.c3.transactionCapacity = 100
+
+# Bind the source and sink to the channel
+a3.sources.r3.channels = c3
+a3.sinks.k3.channel = c3
+```
+
+启动
+
+```
+bin/flume-ng agent --conf conf/ --name a3 --conf-file job/hdfs-dir.conf
+```
+
+拷贝文件到指定目录
+
+```
+cp ./README.md upload/
+```
+
+到 hdfs 上查看文件生成。
+
+##### 监控文件
+
+```
+a2.sources = r2
+a2.sinks = k2
+a2.channels = c2
+
+# Describe/configure the source
+a2.sources.r2.type = exec
+a2.sources.r2.command = tail -F /opt/flume/mydate.txt
+a2.sources.r2.shell = /bin/bash -c 
+
+# Describe the sink
+a2.sinks.k2.type = hdfs 
+a2.sinks.k2.hdfs.path = hdfs://hadoop1/flume/%Y%m%d/%H
+a2.sinks.k2.hdfs.filePrefix = logs-
+a2.sinks.k2.hdfs.round = true
+a2.sinks.k2.hdfs.roundValue = 1
+a2.sinks.k2.hdfs.roundUnit = hour
+a2.sinks.k2.hdfs.useLocalTimeStamp = true
+a2.sinks.k2.hdfs.batchSize = 200
+a2.sinks.k2.hdfs.fileType = DataStream
+a2.sinks.k2.hdfs.rollInterval = 600
+a2.sinks.k2.hdfs.rollSize = 134217700
+a2.sinks.k2.hdfs.rollCount = 0
+a2.sinks.k2.hdfs.minBlockReplicas = 1
+
+# Use a channel which buffers events in memory
+a2.channels.c2.type = memory
+a2.channels.c2.capacity = 1000
+a2.channels.c2.transactionCapacity = 300
+
+# Bind the source and sink to the channel
+a2.sources.r2.channels = c2
+a2.sinks.k2.channel = c2
+```
+
+启动
+
+```
+bin/flume-ng agent --conf conf/ --name a2 --conf-file job/hdfs-file.conf
+```
+
+写数据到文件
+
+```
+echo `date` >> /opt/flume/mydate.txt
+```
+
+到 hdfs 上查看文件生成。
+
+### 9. Sqoop
+
+#### Sqoop 简介
+
+Sqoop 是一个 Hadoop 和结构化存储系统之间批量传输数据的工具。Sqoop 底层通过 MapReduce 实现数据传输。
+
+Sqoop 有两类操作：
+
+导入 import ：将数据导入到 Hadoop 。
+
+导出 export ：从 Hadoop 中导出到结构化存储系统，比如 MySQL 。
+
+#### Sqoop 安装
+
+**1. 解压**
+
+```
+tar -zxf sqoop-1.4.7.bin__hadoop-2.6.0.tar.gz
+mv sqoop-1.4.7.bin__hadoop-2.6.0 sqoop
+```
+
+**2. 修改配置**
+
+```
+cd sqoop/conf
+mv sqoop-env-template.sh sqoop-env.sh
+```
+
+添加
+
+```
+export HADOOP_COMMON_HOME=/opt/hadoop-2.10.1
+export HADOOP_MAPRED_HOME=/opt/hadoop-2.10.1
+export HBASE_HOME=/opt/hbase-2.3.5
+export HIVE_HOME=/opt/hive-2.3.8
+export ZOOCFGDIR=/opt/zookeeper/conf
+```
+
+**3. 加驱动**
+
+将数据库驱动拷贝到 lib 目录。
+
+**4. 配置环境变量**
+
+```
+export SQOOP_HOME=/opt/sqoop
+export PATH=$PATH:$SQOOP_HOME/bin
+```
+
+**5. 验证**
+
+```
+# sqoop-version
+Warning: /opt/sqoop//../hcatalog does not exist! HCatalog jobs will fail.
+Please set $HCAT_HOME to the root of your HCatalog installation.
+Warning: /opt/sqoop//../accumulo does not exist! Accumulo imports will fail.
+Please set $ACCUMULO_HOME to the root of your Accumulo installation.
+21/05/02 22:19:54 INFO sqoop.Sqoop: Running Sqoop version: 1.4.7
+Sqoop 1.4.7
+git commit id 2328971411f57f0cb683dfb79d19d4d19d185dd8
+Compiled by maugli on Thu Dec 21 15:59:58 STD 2017
+```
+
+#### Sqoop 示例
+
+**1. 列出 MySQL 的数据库**
+
+```
+sqoop list-databases \
+--connect jdbc:mysql://localhost:3306/ \
+--username root \
+--password 123456
+```
+
+**2. 列出 MySQL 的数据库中的表**
+
+```
+sqoop list-tables \
+--connect jdbc:mysql://localhost:3306/mysql \
+--username root \
+--password 123456
+```
+
+**3. 创建一张和 MySQL 中的 employee 表一样的 hive 表 hive_employee**
+
+```
+sqoop create-hive-table \
+--connect jdbc:mysql://localhost:3306/test \
+--username root \
+--password 123456 \
+--table employee \
+--hive-table hive_employee
+```
+
+> 报错 Could not load org.apache.hadoop.hive.conf.HiveConf 
+>
+> 在环境变量中设置 
+>
+> export HADOOP_CLASSPATH=$HADOOP_HOME/lib/*
+> export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:$HIVE_HOME/lib/*
+
+> 报错 access denied ("javax.management.MBeanTrustPermission" "register")
+>
+> cp $HIVE_HOME/conf/hive-site.xml $SQOOP_HOME/conf/
+>
+> vim $JAVA_HOME/jre/lib/security/java.policy 
+>
+> 添加
+>
+> grant {
+>
+> ​	permission javax.management.MBeanTrustPermission "register";
+>
+> }
+
+指定 hive 的数据库
+
+```
+sqoop create-hive-table \
+--connect jdbc:mysql://localhost:3306/test \
+--username root \
+--password 123456 \
+--table employee \
+--hive-database test \
+--hive-table hive_employee
+```
+
+**4. 导入 MySQL 表到 HDFS**
+
+```
+sqoop import \
+--connect jdbc:mysql://localhost:3306/test \
+--username root \
+--password 123456 \
+--table employee \
+-m 1
+```
+
+默认 HDFS 路径在 /user/root/ 下，不指定 -m 参数默认是 4 。
+
+--target-dir 可以指定目录，--fields-terminated-by 可以指定分隔符。
+
+```
+sqoop import \
+--connect jdbc:mysql://localhost:3306/test \
+--username root \
+--password 123456 \
+--table employee \
+--target-dir /user/root/employee1 \
+--fields-terminated-by '\t' \
+-m 1
+```
+
+--where 可以指定查询条件
+
+```
+sqoop import \
+--connect jdbc:mysql://localhost:3306/test \
+--username root \
+--password 123456 \
+--where "id=1" \
+--table employee \
+--target-dir /user/root/employee2 \
+-m 1
+```
+
+--query 可以指定查询 sql
+
+```
+sqoop import \
+--connect jdbc:mysql://localhost:3306/test \
+--username root \
+--password 123456 \
+--target-dir /user/root/employee3 \
+--query 'select id,name from employee WHERE $CONDITIONS and name = "John"' \
+--split-by id \
+--fields-terminated-by '\t' \
+-m 1
+```
+
+$CONDITIONS 是必须的，没有条件也得有。
+
+导入 MySQL 表到 Hive
+
+```
+sqoop import \
+--connect jdbc:mysql://hadoop1:3306/test \
+--username root \
+--password 123456 \
+--table employee \
+--hive-import \
+--target-dir /user/root/employee4 \
+-m 1
+```
+
+--lines-terminated-by指定行分隔符
+
+--fields-terminated-by和列分隔符
+
+--hive-overwrite 指定覆盖导入
+
+--create-hive-table 指定自动创建 hive 表，hive 中不能有重名表存在
+
+--hive-table 指定表名
+
+--delete-target-dir 指定删除中间结果数据目录
+
+```
+sqoop import \
+--connect jdbc:mysql://localhost:3306/test \
+--username root \
+--password 123456 \
+--table employee \
+--fields-terminated-by "\t" \
+--lines-terminated-by "\n" \
+--hive-import \
+--hive-overwrite \
+--create-hive-table \
+--delete-target-dir \
+--hive-database default \
+--hive-table employee
+```
+
+--last-value 导入 id > 5 的记录，--incremental append 追加
+
+```
+sqoop import \
+--connect jdbc:mysql://localhost:3306/test \
+--username root \
+--password 123456 \
+--table employee \
+--target-dir /user/root/employee5 \
+--incremental append \
+--check-column id \
+--last-value 5 \
+-m 1
+```
+
+**5. 导出 HDFS 到 MySQL** 
+
+```
+sqoop export \
+--connect jdbc:mysql://hadoop1:3306/sqoopdb  \
+--username root \
+--password 123456 \
+--table sqoop_employee \
+--export-dir /user/root/employee \
+--fields-terminated-by ','
+```
+
+MySQL 中的数据库和表要自己创建。
+
+导入 MySQL 数据到 HBase
+
+```
+sqoop import \
+--connect jdbc:mysql://hadoop1:3306/test \
+--username root \
+--password 123456 \
+--table employee \
+--columns "id,name" \
+--column-family "info" \
+--hbase-row-key "id" \
+--hbase-table "employee"
+```
+
+--hbase-create-table 支持 HBase1.0.1 之前的版本的自动创建 HBase 表的功能
+
+**6. 导出 HBase 数据到 MySQL**
+
+1. 将 Hbase 数据，转成 HDFS 文件，然后再由 sqoop 导入。
+2. 直接使用 HBase 的 Java API 读取表数据，直接向 MySQL 导入，不需要使用 sqoop 。
+
+### 10. Azkaban
+
+#### 简介
+
+
+
+#### 编译
+
+Azkaban 没有提供编译好的包，需要自己编译，版本 4.0.0 。
+
+```shell
+cd azkaban; 
+./gradlew build installDist -x test
+```
+
+> 将 azkaban/build.gradle 中的 
+>
+> https://linkedin.bintray.com/maven 
+>
+> 替换成
+>
+> https://linkedin.jfrog.io/artifactory/open-source/
+
+#### Solo Server
+
+solo server 是单机运行模式，编译好之后直接运行。
+
+```shell
+cd azkaban-solo-server/build/install/azkaban-solo-server 
+bin/start-solo.sh
+```
+
+访问 localhost:8081，azkaban/azkaban 。
+
+#### Multi Executor Server
+
+1. 创建数据库
+
+   ```
+   source azkaban-db/build/install/azkaban-db/create-all-sql-0.1.0-SNAPSHOT.sql
+   ```
+
+2. Executor Server
+
+   修改 azkaban-web-server/build/install/azkaban-web-server/conf/azkaban.properties 
+
+   ```
+   mysql.user=xxx
+   mysql.password=xxx
+   executor.port=12321
+   ```
+
+   启动
+
+   ```
+   cd azkaban-exec-server/build/install/azkaban-exec-server/
+   ./bib/start-exec.sh
+   ```
+
+   激活 executor server
+
+   ```
+   curl localhost:12321/executor?action=activate
+   {"status":"success"}
+   ```
+
+   
+
+3. Web Server
+
+   修改 azkaban-web-server/build/install/azkaban-web-server/conf/azkaban.properties 
+
+   ```
+   mysql.user=xxx
+   mysql.password=xxx
+   executor.port=12321
+   ```
+
+   启动
+
+   ```
+   cd azkaban-web-server/build/install/azkaban-web-server/
+   ./bin/start-web.sh
+   ```
+
+   

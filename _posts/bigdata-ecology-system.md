@@ -18,11 +18,15 @@ thumbnail:
 
 ### Flume
 
-[User Guide for Flume](../../../../2021/05/02/learning-guide-for-flume/)
+[Flume Practice](../../../../2021/04/24/definitive-guide-for-hadoop/#8-Flume)
 
 ### Sqoop
 
-[User Guide for Sqoop](../../../../2021/05/02/learning-guide-for-sqoop/)
+[Sqoop Practice](../../../../2021/04/24/definitive-guide-for-hadoop/#9-Sqoop)
+
+### Azkaban
+
+[Azkaban Quickstart](../../../../2021/04/24/definitive-guide-for-hadoop/#10-Azkaban)
 
 ### Kafka
 
@@ -32,7 +36,13 @@ thumbnail:
 
 [Learning Guide for Hive](../../../../2021/05/05/learning-guide-for-hive/)
 
-[data warehouse data analysis project](../../../../2021/05/05/data-warehouse-data-analysis-project/)
+[Data Warehouse Analysis Project](../../../../2021/05/05/data-warehouse-analysis-project/)
+
+
+
+### Hbase
+
+
 
 ### Zookeeper
 
@@ -42,22 +52,14 @@ thumbnail:
 
 [Definitive Guide for Spark](../../../../2021/05/30/definitive-guide-for-spark/)
 
-[Spark 入门](../../../../2016/05/05/spark-introduction/)
 
-[Spark 运行模式](../../../../2016/05/07/spark-cluster-manager-types/)
-
-[Spark 调度管理](../../../../2016/05/14/spark-job-scheduling/)
-
-[Spark 序列化](../../../../2016/05/11/spark-data-serialization/)
-
-[Spark Shuffle 操作](../../../../2016/05/20/spark-shuffle/)
-
-[Spark 存储管理](../../../../2016/05/20/spark-store-management/)
-
-[spark-hardware-provisioning](../../../../2017/12/26/spark-hardware-provisioning/)
-
-[Spark 调优](../../../../2016/05/27/spark-tuning/)
-
-[spark-properties](../../../../2017/12/26/spark-properties/)
 
 ### Flink
+
+[Definitive Guide for Flink](../../../../2021/05/30/definitive-guide-for-flink/)
+
+
+
+### ClickHouse
+
+[ClickHouse Practice](../../../../2021/05/30/clickhouse-practice/)
