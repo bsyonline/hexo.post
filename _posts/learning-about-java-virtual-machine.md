@@ -947,64 +947,157 @@ foo.m1();
 
 1. **栈上分配**
    如果对象没有逃逸，可以将对象分配在方法的栈上而不用在堆中创建对象，这样当方法执行完，栈帧弹出，对象就自动被回收，可以加快内存回收，减少 GC 。
+   
+   ```java
+   public class EscapeAnalysisExample1 {
+       public static void main(String[] args) {
+           for (int i = 0; i < 5_000_000; i++) {
+               createObject();
+           }
+       }
+   
+       public static void createObject() {
+           new Object();
+       }
+   }
+   ```
+   
+   上面的示例代码使用 jvm 参数 -XX:+PrintGC -Xms5M -Xmn5M -XX:-DoEscapeAnalysis 运行，会打印 GC 日志。
+   
+   ```
+   [GC (Allocation Failure)  4096K->709K(5632K), 0.0007185 secs]
+   [GC (Allocation Failure)  4805K->749K(5632K), 0.0006822 secs]
+   [GC (Allocation Failure)  4845K->797K(5632K), 0.0004460 secs]
+   [GC (Allocation Failure)  4893K->797K(5632K), 0.0004623 secs]
+   [GC (Allocation Failure)  4893K->805K(5632K), 0.0003993 secs]
+   [GC (Allocation Failure)  4901K->837K(4608K), 0.0003775 secs]
+   [GC (Allocation Failure)  3909K->829K(5120K), 0.0003963 secs]
+   [Full GC (Ergonomics)  829K->658K(7168K), 0.0054946 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0002696 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0002715 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0002137 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0002416 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0002771 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0002459 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0002483 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0003253 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0003556 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0005012 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0003222 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0002627 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0003585 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0003137 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0004831 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0004348 secs]
+   [GC (Allocation Failure)  3730K->658K(7168K), 0.0002738 secs]
+   
+   Process finished with exit code 0
+   ```
+   
+   如果使用 -XX:+PrintGC -Xms5M -Xmn5M -XX:+DoEscapeAnalysis，这时对象都是分配在栈上，不会输出 GC 日志。
+   
+   
+   
 2. **锁消除**
    当 JVM 认为一个对象只在当前线程内部使用，那么就会优化掉对象的同步锁。
 
-```
-public static void m1() {
-	synchronized (new Object()) {
-		System.out.println("m1");
-	}
-}
-public static void optimizedM1() {
-	System.out.println("m1");
-}
-```
+   ```java
+   //优化前
+   public static void m1() {
+   	synchronized (new Object()) {
+   		System.out.println("m1");
+   	}
+   }
+   //优化后
+   public static void optimizedM1() {
+   	System.out.println("m1");
+   }
+   ```
 
-上边的例子只是为了说明，因为实际中我们应该不会对 new Object() 进行加锁。实际中最常见的还有在一个方法内部使用 StringBuffer.append() ，StringBuffer 的方法是 synchronized ，如果对象没有逃逸，JVM 会帮我们优化掉 synchronized 。
+   上边的例子只是为了说明，因为实际中我们应该不会对 new Object() 进行加锁。实际中最常见的还有在一个方法内部使用 StringBuffer.append() ，StringBuffer 的方法是 synchronized ，如果对象没有逃逸，JVM 会帮我们优化掉 synchronized 。
+
+
 
 3. **标量替换**
    标量不能再拆分，比如基本类型，聚合量可以被拆分，比如对象。将对象分解成标量，使用标量代替对象就叫做标量替换。如果对象没有逃逸，就可以用标量代替，变量只存储在栈上，就不用在堆中创建对象，既减少了内存占用又提高了运行速度。
-
-```
-class Point {
-	int x;
-	int y;
-}
-public void optimizedShow() {
-	int x = 1;
-	int y = 2;
-	System.out.println("point=(" + x + ", " + y + ")");
-}
-public void show() {
-	Point point = new Point();
-	point.x = 1;
-	point.y = 2;
-	System.out.println("point=(" + point.x + ", " + point.y + ")");
-}
-```
+   
+   ```java
+   class Point {
+   	int x;
+   	int y;
+   }
+   //优化前
+   public void show() {
+   	Point point = new Point();
+   	point.x = 1;
+   	point.y = 2;
+   	System.out.println("point=(" + point.x + ", " + point.y + ")");
+   }
+   
+   //优化后
+   public void optimizedShow() {
+   	int x = 1;
+   	int y = 2;
+   	System.out.println("point=(" + x + ", " + y + ")");
+   }
+   ```
+   
+   
 
 4. **锁粗化**
    加锁操作是很消耗资源的，如果在循环内部进行多次，会将锁的范围扩大到循环外。
-
-```
-public static void m1() {
-	for (int i = 0; i < 5_000_000; i++) {
-		synchronized (new Object()) {
-
-		}
-	}
-}
-public static void optimizedM1() {
-	synchronized (new Object()) {
-		for (int i = 0; i < 5_000_000; i++) {
-
-		}
-	}
-}
-```
-
-
+   
+   ```java
+   //优化前
+   public static void m1() {
+   	for (int i = 0; i < 5_000_000; i++) {
+   		synchronized (new Object()) {
+   
+   		}
+   	}
+   }
+   //优化后
+   public static void optimizedM1() {
+   	synchronized (new Object()) {
+   		for (int i = 0; i < 5_000_000; i++) {
+   
+   		}
+   	}
+   }
+   ```
+   
+   ```java
+   public class EscapeAnalysisExample4 {
+       public static void main(String[] args) {
+           long start = System.currentTimeMillis();
+           foo();
+           System.out.println("foo cost = " + (System.currentTimeMillis() - start) + "ms");
+           start = System.currentTimeMillis();
+       }
+   
+       public static void foo() {
+           for (int i = 0; i < 5_000_000; i++) {
+               synchronized (new Object()) {
+   
+               }
+           }
+       }
+   }
+   ```
+   
+   使用 jvm 参数 -XX:-DoEscapeAnalysis 关闭逃逸分析优化
+   
+   ```
+   foo cost = 118ms
+   ```
+   
+   使用 jvm 参数 -XX:+DoEscapeAnalysis 打开逃逸分析优化
+   
+   ```
+   foo cost = 6ms
+   ```
+   
+   
 
 ### 7. 让 YGC 和 FGC 交替出现
 

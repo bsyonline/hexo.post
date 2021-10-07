@@ -275,7 +275,7 @@ order by 的执行流程（单行长度比较小）：
 
 Explain 会展示 MySQL 优化器关于语句执行计划的信息，也就是说会解释 MySQL 将如何处理语句。
 
-#### 执行计划字段含义
+#### 3.1 执行计划字段含义
 
 我们先来试一下。
 
@@ -300,13 +300,15 @@ possible_keys: NULL
 Explain 结果显示了 12 列（黑体是我们需要重点关注的列）。
 
 <table style="font-size:12px;color:#333333;border-width: 1px;border-color: #666666;border-collapse: collapse;"><tr><th style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #dedede;">列</th><th style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #dedede;">说明</th></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">id</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">序号</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;"><b>select_type</b></td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">select 的类型</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">table</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">表名</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">partitions</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">匹配的分区</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;"><b>type</b></td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">查找的类型</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">possible_keys</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">可能选择的索引</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">key</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">实际选择的索引</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">key_len</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">实际使用的索引的长度</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;"><b>ref</b></td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">与索引比较的列</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">rows</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">读取的行数</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">filtered</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">按条件过滤后的行数占比</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;"><b>Extra</b></td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">附加信息</td></tr></table><br>
-##### **select_type**
+##### **select_type**（重要）
 
 select_type 有以下一些值：
 
-1. SIMPLE：简单 SELECT（不使用 UNION 或子查询）。
+###### 1. SIMPLE
 
-```mysql
+简单 SELECT（不使用 UNION 或子查询）。
+
+```
 mysql> explain select * from t_user\G
 *************************** 1. row ***************************
            id: 1
@@ -324,9 +326,13 @@ possible_keys: NULL
 1 row in set, 1 warning (0.00 sec)
 ```
 
-2. PRIMARY：最外层 SELECT 。
 
-```mysql
+
+###### 2. PRIMARY
+
+最外层 SELECT 。
+
+```
 mysql> explain select t1.* from t_user t1 where t1.id =(select id from t_user t2 where t2.name='user1')\G
 *************************** 1. row ***************************
            id: 1
@@ -357,9 +363,13 @@ possible_keys: NULL
 2 rows in set, 1 warning (0.02 sec)
 ```
 
-3. UNION：UNION 中第二个及以后的 SELECT 语句。
 
-```mysql
+
+###### 3. UNION
+
+UNION 中第二个及以后的 SELECT 语句。
+
+```
 mysql> explain select * from t_user t1 where t1.id=1 union select * from t_user t2 where t2.id=2\G
 *************************** 1. row ***************************
            id: 1
@@ -405,7 +415,7 @@ possible_keys: NULL
 
 union 的结果 UNION RESULT 放在临时表 <union1,2> 中，所以 id 为 NULL 。union 要对结果去重，所以需要临时表，union all 不需要去重，所以不需要临时表。
 
-```mysql
+```
 mysql> explain select * from t_user t1 where t1.id=1 union all select * from t_user t2 where t2.id=2\G
 *************************** 1. row ***************************
            id: 1
@@ -436,9 +446,13 @@ possible_keys: PRIMARY
 2 rows in set, 1 warning (0.00 sec)
 ```
 
-4. DEPENDENT UNION：UNION 中的第二个及以后的 SELECT 语句，依赖外层查询。
 
-```mysql
+
+###### 4. DEPENDENT UNION
+
+UNION 中的第二个及以后的 SELECT 语句，依赖外层查询。
+
+```
 mysql> explain select t1.* from t_user t1 where t1.id in (select id from t_user t2 union select id from t_user t3)\G
 *************************** 1. row ***************************
            id: 1
@@ -495,12 +509,135 @@ possible_keys: NULL
 4 rows in set, 1 warning (0.00 sec)
 ```
 
-5. UNION RESULT：UNION 的结果。
-6. SUBQUERY：子查询中第一个 SELECT 语句。
-7. DEPENDENT SUBQUERY：子查询中第一个 SELECT 语句，依赖外部查询。
-8. DERIVED：derived 表
+###### 5. UNION RESULT
 
-```mysql
+UNION 的结果。
+
+```
+mysql> explain select * from t_user where id=1 union select * from t_user where id=2\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: PRIMARY
+        table: t_user
+   partitions: NULL
+         type: const
+possible_keys: PRIMARY
+          key: PRIMARY
+      key_len: 4
+          ref: const
+         rows: 1
+     filtered: 100.00
+        Extra: NULL
+*************************** 2. row ***************************
+           id: 2
+  select_type: UNION
+        table: t_user
+   partitions: NULL
+         type: const
+possible_keys: PRIMARY
+          key: PRIMARY
+      key_len: 4
+          ref: const
+         rows: 1
+     filtered: 100.00
+        Extra: NULL
+*************************** 3. row ***************************
+           id: NULL
+  select_type: UNION RESULT
+        table: <union1,2>
+   partitions: NULL
+         type: ALL
+possible_keys: NULL
+          key: NULL
+      key_len: NULL
+          ref: NULL
+         rows: NULL
+     filtered: NULL
+        Extra: Using temporary
+3 rows in set, 1 warning (0.00 sec)
+```
+
+
+
+###### 6. SUBQUERY
+
+子查询中第一个 SELECT 语句。
+
+```
+mysql> explain select * from t_employee where dept_id = (select dept_id from t_dept limit 1) \G
+*************************** 1. row ***************************
+           id: 1
+  select_type: PRIMARY
+        table: t_employee
+   partitions: NULL
+         type: ALL
+possible_keys: i_dept_id
+          key: NULL
+      key_len: NULL
+          ref: NULL
+         rows: 110
+     filtered: 94.55
+        Extra: Using where
+*************************** 2. row ***************************
+           id: 2
+  select_type: SUBQUERY
+        table: t_dept
+   partitions: NULL
+         type: index
+possible_keys: NULL
+          key: PRIMARY
+      key_len: 8
+          ref: NULL
+         rows: 4
+     filtered: 100.00
+        Extra: Using index
+2 rows in set, 1 warning (0.00 sec)
+```
+
+
+
+###### 7. DEPENDENT SUBQUERY
+
+子查询中第一个 SELECT 语句，依赖外部查询。
+
+```
+mysql> explain select (select dept_name from t_dept where dept_id=e.dept_id),e.* from t_employee e \G
+*************************** 1. row ***************************
+           id: 1
+  select_type: PRIMARY
+        table: e
+   partitions: NULL
+         type: ALL
+possible_keys: NULL
+          key: NULL
+      key_len: NULL
+          ref: NULL
+         rows: 110
+     filtered: 100.00
+        Extra: NULL
+*************************** 2. row ***************************
+           id: 2
+  select_type: DEPENDENT SUBQUERY
+        table: t_dept
+   partitions: NULL
+         type: eq_ref
+possible_keys: PRIMARY
+          key: PRIMARY
+      key_len: 8
+          ref: test.e.dept_id
+         rows: 1
+     filtered: 100.00
+        Extra: NULL
+2 rows in set, 2 warnings (0.00 sec)
+```
+
+
+
+###### 8. DERIVED
+
+derived 表
+
+```
 mysql> explain select * from (select id from t_user group by id) A\G
 *************************** 1. row ***************************
            id: 1
@@ -531,20 +668,92 @@ possible_keys: PRIMARY
 2 rows in set, 1 warning (0.00 sec)
 ```
 
-9. MATERIALIZED：
-10. UNCACHEABLE SUBQUERY：子查询结果无法缓存，必须针对外部查询的每一行重新进行评估。
-11. UNCACHEABLE UNION：UNION 中的第二个及以后的 SELETE 语句，并且这个 UNION 属于 UNCACHEABLE SUBQUERY 。
+
+
+###### 9. MATERIALIZED
+
+###### 10. UNCACHEABLE SUBQUERY
+
+子查询结果无法缓存，必须针对外部查询的每一行重新进行评估。
+
+###### 11. UNCACHEABLE UNION
+
+UNION 中的第二个及以后的 SELETE 语句，并且这个 UNION 属于 UNCACHEABLE SUBQUERY 。
+
+```
+mysql> explain select * from t_user where gender in (select gender from t_user where id=1 union select gender from t_user where id=2)\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: PRIMARY
+        table: t_user
+   partitions: NULL
+         type: ALL
+possible_keys: NULL
+          key: NULL
+      key_len: NULL
+          ref: NULL
+         rows: 101
+     filtered: 100.00
+        Extra: Using where
+*************************** 2. row ***************************
+           id: 2
+  select_type: DEPENDENT SUBQUERY
+        table: t_user
+   partitions: NULL
+         type: const
+possible_keys: PRIMARY
+          key: PRIMARY
+      key_len: 4
+          ref: const
+         rows: 1
+     filtered: 100.00
+        Extra: NULL
+*************************** 3. row ***************************
+           id: 3
+  select_type: DEPENDENT UNION
+        table: t_user
+   partitions: NULL
+         type: const
+possible_keys: PRIMARY
+          key: PRIMARY
+      key_len: 4
+          ref: const
+         rows: 1
+     filtered: 100.00
+        Extra: NULL
+*************************** 4. row ***************************
+           id: NULL
+  select_type: UNION RESULT
+        table: <union2,3>
+   partitions: NULL
+         type: ALL
+possible_keys: NULL
+          key: NULL
+      key_len: NULL
+          ref: NULL
+         rows: NULL
+     filtered: NULL
+        Extra: Using temporary
+4 rows in set, 1 warning (0.00 sec)
+```
+
+
 
 ##### **table**
 
 table 对应的是表名，比如 t1 ，或者是临时表的名字。将查询的结果保存到临时表叫做物化。如果是物化的方式，则显示为 ```<derivedN>``` ，表示需要依赖 id 为 N 的查询。当使用 union 时显示 ```<union1,2>``` 。 
 
-##### **type**
+##### **type**（重要）
 
-1. system：该表只有一行记录。system 是 const 的特例。
-2. const：全表最多只有一行匹配。
+###### 1. system
 
-```mysql
+该表只有一行记录。system 是 const 的特例。
+
+###### 2. const（重要）
+
+全表最多只有一行匹配。
+
+```
 mysql> explain select * from t_user where id=1\G
 *************************** 1. row ***************************
            id: 1
@@ -562,9 +771,13 @@ possible_keys: PRIMARY
 1 row in set, 1 warning (0.00 sec)
 ```
 
-3. eq_ref：A 连接 B ，B 的连接字段是主键或唯一索引。
 
-```mysql
+
+###### 3. eq_ref（重要）
+
+A 连接 B ，B 的连接字段是主键或唯一索引。
+
+```
 mysql> explain select * from t_dept a join t_employee b on a.dept_id=b.id\G
 *************************** 1. row ***************************
            id: 1
@@ -595,17 +808,41 @@ possible_keys: PRIMARY
 2 rows in set, 1 warning (0.01 sec)
 ```
 
-4. ref：A 连接 B ，B 的连接字段是普通索引。
 
-```mysql
-mysql> explain select * from t_dept a join t_employee b on a.dept_id=b.dept_id\G
+
+###### 4. ref（重要）
+
+字段是普通索引。
+
+```
+mysql> explain select * from t_employee where dept_id=1 \G
 *************************** 1. row ***************************
            id: 1
   select_type: SIMPLE
-        table: t_dept
+        table: t_employee
+   partitions: NULL
+         type: ref
+possible_keys: i_dept_id
+          key: i_dept_id
+      key_len: 9
+          ref: const
+         rows: 1
+     filtered: 100.00
+        Extra: NULL
+1 row in set, 1 warning (0.00 sec)
+```
+
+等值的非主键连接。
+
+```
+mysql> explain select * from t_employee e join t_dept d where d.dept_name=e.name \G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: d
    partitions: NULL
          type: ALL
-possible_keys: PRIMARY
+possible_keys: NULL
           key: NULL
       key_len: NULL
           ref: NULL
@@ -615,21 +852,28 @@ possible_keys: PRIMARY
 *************************** 2. row ***************************
            id: 1
   select_type: SIMPLE
-        table: t_employee
+        table: e
    partitions: NULL
-         type: ALL
-possible_keys: i_dept_id
-          key: NULL
-      key_len: NULL
-          ref: NULL
-         rows: 9
-     filtered: 25.00
-        Extra: Using where; Using join buffer (Block Nested Loop)
+         type: ref
+possible_keys: i_name
+          key: i_name
+      key_len: 203
+          ref: test.d.dept_name
+         rows: 1
+     filtered: 100.00
+        Extra: NULL
 2 rows in set, 1 warning (0.00 sec)
 ```
 
-5. fulltext：使用 fulltext 索引进行连接。
-6. ref_or_null：类似 ref ，但是还会搜索包含 NULL 的行。
+
+
+###### 5. fulltext
+
+使用 fulltext 索引。
+
+###### 6. ref_or_null
+
+类似 ref ，但是还会搜索包含 NULL 的行。
 
 ```
 mysql> explain select * from t_user where skill='aaa' or skill is null\G
@@ -649,7 +893,11 @@ possible_keys: NULL
 1 row in set, 1 warning (0.00 sec)
 ```
 
-7. index_merge：
+###### 7. unique_subquery
+
+###### 8. index_subquery
+
+###### 9. index_merge
 
 ```
 mysql> explain select * from t_user where name='Tom' or skill is null\G
@@ -669,11 +917,13 @@ possible_keys: NULL
 1 row in set, 1 warning (0.00 sec)
 ```
 
-8. unique_subquery：
-9. index_subquery：
-10. range：
 
-```mysql
+
+###### 10. range（重要）
+
+范围查询。
+
+```
 mysql> explain select * from t_user where id>10\G
 *************************** 1. row ***************************
            id: 1
@@ -691,9 +941,33 @@ possible_keys: PRIMARY
 1 row in set, 1 warning (0.00 sec)
 ```
 
-11. index：全表扫描，查询字段全都有索引。
+最左前缀匹配。
 
-```mysql
+```
+mysql> explain select * from t_user where name like 'a%'\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: t_user
+   partitions: NULL
+         type: range
+possible_keys: i_name
+          key: i_name
+      key_len: 202
+          ref: NULL
+         rows: 1
+     filtered: 100.00
+        Extra: Using index condition
+1 row in set, 1 warning (0.00 sec)
+```
+
+
+
+###### 11. index（重要）
+
+全表扫描，查询字段全都有索引（即不用回表）。
+
+```
 mysql> explain select name from t_user\G
 *************************** 1. row ***************************
            id: 1
@@ -711,9 +985,13 @@ possible_keys: NULL
 1 row in set, 1 warning (0.00 sec)
 ```
 
-12. ALL：全表扫描，查询的字段不全都有索引。
 
-```mysql
+
+###### 12. ALL
+
+全表扫描，查询的字段不全都有索引，是在 server 层过滤数据。
+
+```
 mysql> explain select * from t_user\G
 *************************** 1. row ***************************
            id: 1
@@ -731,9 +1009,15 @@ possible_keys: NULL
 1 row in set, 1 warning (0.00 sec)
 ```
 
+
+
 ##### **possible_keys**
 
-如果查询没有使用索引，则为 NULL ，可以在 where 中添加一些条件来使用索引。
+优化器可能用到的索引。如果查询没有使用索引，则为 NULL ，可以在 where 中添加一些条件来使用索引。
+
+##### key
+
+优化器最终使用的索引。主键索引>唯一索引>普通索引
 
 ##### **key_len**
 
@@ -780,9 +1064,11 @@ possible_keys: i_dept_id
 
 在使用表连接时，如果是 A left join B ，则 A 是驱动表，B 是被驱动表。如果是 A right join B ，则 B 是驱动表，A 是被驱动表。如果是 ```select * from A,B```  ，则小表是驱动表，大表是被驱动表。上边的例子，t_dept 是驱动表，t_employee 是被驱动表，t_employee 的连接行数 = 1 行 (t_dept rows \* t_dept filtered=1 \* 100% = 1) 。
 
-##### Extra
+##### Extra（重要）
 
-1. NULL：查询的列没有被索引覆盖，必须通过回表进行查询。
+###### 1. NULL
+
+查询的列没有被索引覆盖，必须通过回表进行查询。
 
 ```mysql
 mysql> explain select * from t_user where name='tom'\G
@@ -802,7 +1088,11 @@ possible_keys: name
 1 row in set, 1 warning (0.00 sec)
 ```
 
-1. Using index：只使用索引查询列的信息，这种情况一般都是使用了索引覆盖。
+> name 有索引
+
+###### 2. Using index
+
+只使用索引查询列的信息，这种情况一般都是使用了索引覆盖。
 
 ```mysql
 mysql> explain select name from t_user where name='tom'\G
@@ -822,7 +1112,11 @@ possible_keys: name
 1 row in set, 1 warning (0.00 sec)
 ```
 
-2. Using where：where 条件是索引之一。
+> name 有索引
+
+###### 3. Using where
+
+where 条件是索引之一。索引失效，在 server 层进行过滤。
 
 ```mysql
 mysql> explain select name from t_user where name='tom' and age=10\G
@@ -842,12 +1136,45 @@ possible_keys: NULL
 1 row in set, 1 warning (0.00 sec)
 ```
 
-3. Using index condition：使用了索引下推优化。
-4. Using temporary：查询使用了临时表，临时表创建和维护成本很高，所以一般需要考虑优化。
-5. Using filesort：filesort 耗时，一般需要考虑优化成索引排序。
-6. Using join buffer：连接条件没有使用索引，需要优化。
+> age 没有索引
 
-#### 影响优化器的因素
+###### 4. Using index condition
+
+使用了索引下推优化。
+
+```
+mysql> explain select * from t_user where name='a' and age>10\G
+*************************** 1. row ***************************
+           id: 1
+  select_type: SIMPLE
+        table: t_user
+   partitions: NULL
+         type: range
+possible_keys: i_name_age
+          key: i_name_age
+      key_len: 207
+          ref: NULL
+         rows: 1
+     filtered: 100.00
+        Extra: Using index condition
+1 row in set, 1 warning (0.00 sec)
+```
+
+> name 和 age 是组合索引
+
+###### 5. Using temporary
+
+查询使用了临时表，临时表创建和维护成本很高，所以一般需要考虑优化。
+
+###### 6. Using filesort
+
+文件排序。filesort 耗时，一般需要考虑优化成索引排序。
+
+###### 7. Using join buffer
+
+连接条件没有使用索引，需要优化。
+
+#### 3.2 影响优化器的因素
 
 执行计划可以看到 MySQL 执行使用的索引，选择索引就是由优化器决定的。优化器选择索引的目的是为了找到最优化的执行方案并用最小的代价执行。所以优化器的选择会受到扫描行数、是否使用临时表、是否排序等因素的综合影响。
 
@@ -857,7 +1184,7 @@ MySQL 优化器无法精确知道执行的记录数，只能根据索引的区�
 
 通常 MySQL 估算的行数与实际差别不大，也有差别比较大的时候，如果 explain 的结果和实际情况差距较大，可以使用 analyze table t1 来修正。
 
-#### 索引选择异常处理
+#### 3.3 索引选择异常处理
 
 ##### force index 
 
