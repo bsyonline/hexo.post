@@ -1066,6 +1066,8 @@ foo.m1();
    }
    ```
    
+   下面看下优化效果
+   
    ```java
    public class EscapeAnalysisExample4 {
        public static void main(String[] args) {
