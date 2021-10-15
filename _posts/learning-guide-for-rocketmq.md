@@ -142,3 +142,34 @@ bin/mqadmin sendMessage -n localhost:9876 -b localhost:10911 -t world -p test
 bin/mqadmin consumeMessage -n localhost:9876 -b localhost:10911 -g group1 -t world
 ```
 
+
+
+#### 自动创建 Topic 流程
+
+**step 1：broker 启动时注册路由信息**
+
+brokerA 启动时，broker 会创建默认topic TBW102 注册到 nameserv ，并且每隔 30 秒通过心跳拉取 nameserv 上的路由信息，更新本地缓存的路由信息。
+
+brokerB 启动时，broker 也会创建默认topic TBW102 注册到 nameserv ，并且每隔 30 秒通过心跳拉取 nameserv 上的路由信息，更新本地缓存的路由信息。
+
+此时 nameserv 上的路由信息为 TBW102=[brokerA, brokerB] 。
+
+**step 2：producer 发消息**
+
+producer 向 topic=Topic_01 发消息时，会先从本地缓存取 Topic_01 的路由信息，结果是取不到，然后就会去 nameserv 取，还是取不到，最后就去 nameserv 取默认 topic 也就是 TBW102 的路由信息作为 Topic_01 的路由信息，并缓存到本地。
+
+此时，producer 本地缓存中的路由信息为 Topic_01=[brokerA, brokerB] ，然后通过路由策略选择一个 broker 发送消息。假定选择 brokerA 。
+
+**step 3：broker 接收消息**
+
+消息发送到 brokerA 后，brokerA 会 checkMsg ，如果本地没有 Topic_01 的信息，并且 rocketmq 开启了 autoCreateTopicEnable=true ，那么 brokerA 会按照默认 topic 的配置创建新的 topic Topic_01 。
+
+假定没有其他操作，Topic_01 已经同步到 nameserv ，此时 nameserv 上的路由信息为 Topic_01=[brokerA] 。
+
+**step 4：producer 再次发消息**
+
+producer 也有心跳定时从 nameserv 获取路由信息，此时 producer 的 topicList=[TWB102, Topic_01] ，一个心跳周期后，producer 本地缓存就变成了 Topic_01=[brokerA] 。
+
+**step 5：producer 再次发消息**
+
+producer 再次向 topic=Topic_01 发消息时，先从本地缓存取 Topic_01 ，只会取到 brokerA ，所以就只会向 brokerA 发消息。

@@ -70,7 +70,6 @@ volatile 是 Java 语言的关键字，常常和 synchronized 进行比较。
 
 <table style="font-size:12px;color:#333333;border-width: 1px;border-color: #666666;border-collapse: collapse;width:100%"><tr><th style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #dedede;"></th><th style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #dedede;">volatile</th><th style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #dedede;">synchronized</th></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">作用位置</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">变量</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">方法，代码块</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">同步对象</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">主内存和线程内存之间某个变量的值</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">主内存和线程内存之间所有变量的值</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">消耗资源</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">少</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">多</td></tr></table>
 
-
 volatile 不能像 synchronized 一样广泛的用于线程安全，因为 volatile 不能保证原子性，所以 volatile 不能保证线程安全。但是在某些特殊场景下使用 volatile 要比 synchronized 和锁简单和高效，还能使程序更加简单。
 
 #### 内存可见性
@@ -635,7 +634,6 @@ BlockingQueue 是 java.util.concurrent 包中的接口，实现了 Collection �
 BlockingQueue 操作
 
 <table style="font-size:12px;color:#333333;border-width: 1px;border-color: #666666;border-collapse: collapse;"><tr><th style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #dedede;"></th><th style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #dedede;">Throws exception</th><th style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #dedede;">Special value</th><th style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #dedede;">Blocks</th><th style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #dedede;">Times out</th></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">Insert</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;">add(e)</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;">offer(e)</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;">put(e)</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;">offer(e, time, unit)</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">Remove</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;">remove()</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;">poll()</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;">take()</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;">poll(time, unit)</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">Examine</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;">element()</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;">peek()</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;">not applicable</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;">not applicable</td></tr></table>
-
 和普通的 queue 相比，BlockingQueue 满时 put 元素和 BlockingQueue 为空时 take 元素都会阻塞。下面我们就以 LinkedBlockingQueue 为例来看看具体实现。
 首先在 LinkedBlockingQueue 中定义了一些属性。
 <img src="https://s2.ax1x.com/2020/03/07/3jTjvd.png" alt="3jTjvd.png" border="0" style="width:400px"/>
@@ -904,7 +902,7 @@ ThreadLocal 在什么场景下使用呢？
 
 1. set 
 
-   ```
+   ```java
    public void set(T value) {
    	Thread t = Thread.currentThread();
    	ThreadLocalMap map = getMap(t);
@@ -919,7 +917,7 @@ ThreadLocal 在什么场景下使用呢？
 
 2. get
 
-   ```
+   ```java
    public T get() {
    	Thread t = Thread.currentThread();
    	ThreadLocalMap map = getMap(t);
@@ -939,7 +937,7 @@ ThreadLocal 在什么场景下使用呢？
 
 3. remove
 
-   ```
+   ```java
    public void remove() {
        ThreadLocalMap m = getMap(Thread.currentThread());
        if (m != null)
@@ -951,34 +949,41 @@ ThreadLocal 在什么场景下使用呢？
 
 了解 ThreadLocal 的基本操作之后，我们还要再来看看 ThreadLocalMap 。ThreadLocal 提供的功能，本质上是由 ThreadLocalMap 实现的。刚才源码我们也看到了，在往 ThreadLocal 中 set 对象的时候，实际调用的是 ThreadLocalMap 的 set 方法。
 
-```
-// 遍历map
-for (Entry e = tab[i];
-	e != null;
-	e = tab[i = nextIndex(i, len)]) {
-	ThreadLocal<?> k = e.get();
-    // 如果Entry的key相同，则替换
-	if (k == key) {
-		e.value = value;
-		return;
-	}
-	// 如果Entry的key是null，则set新值
-	if (k == null) {
-		replaceStaleEntry(key, value, i);
-		return;
-	}
+```java
+private void set(ThreadLocal<?> key, Object value) {
+	Entry[] tab = table;
+	int len = tab.length;
+    // 根据hash找到数组中的一个位置
+    int i = key.threadLocalHashCode & (len-1);
+	// 遍历map，看是否有值，如果没有则不进入循环
+    // 如果有值，entry的key相同就替换，key为空就直接set，否则就找数组的下一个位置
+    for (Entry e = tab[i];
+        e != null;
+        e = tab[i = nextIndex(i, len)]) {
+        ThreadLocal<?> k = e.get();
+        // 如果Entry的key相同，则替换
+        if (k == key) {
+            e.value = value;
+            return;
+        }
+        // 如果Entry的key是null，则set新值
+        if (k == null) {
+            replaceStaleEntry(key, value, i);
+            return;
+        }
+    }
+    // 直到找到一个空的位置，生成新的Entry添加到map中
+    tab[i] = new Entry(key, value);
+    // map的大小加1
+    int sz = ++size;
+    if (!cleanSomeSlots(i, sz) && sz >= threshold)
+        // 如果清除map中Entry的key为null的Entry之后，map的size
+        // 还大于阈值，则进行rehash
+        rehash();
 }
-// 如果没有相同的对象，则生成新的Entry添加到map中
-tab[i] = new Entry(key, value);
-// map的大小加1
-int sz = ++size;
-if (!cleanSomeSlots(i, sz) && sz >= threshold)
-	// 如果清除map中Entry的key为null的Entry之后，map的size
-	// 还大于阈值，则进行rehash
-	rehash();
 ```
 
-```
+```java
 private void rehash() {   
 	// 清除过时的元素(Entry的key为空)
 	expungeStaleEntries();
@@ -988,7 +993,83 @@ private void rehash() {
 }
 ```
 
+#### ThreadLocal 需要注意的问题
 
+1. 脏数据
+
+   由于是线程隔离的，且清理之前不会失效，如果线程复用，在新线程 set 前就去 get ，可能会得到旧线程的数据。
+
+2. 内存泄漏
+
+   ThreadLocalMap 中的 key 是弱引用，不存在外部引用时就可以被回收，ThreadLocalMap 中的 entry 的 key 是强引用，所以当线程退出，value 才会被回收。如果线程一直不退出，就会造成内存泄漏。
+
+所以在使用 ThreadLocal 是应该尽可能的主动 remove 。
+
+ 3. 还有一种场景，在主线程和子线程共享数据时，直接使用 ThreadLocal 是不行的，可以使用 InheritableThreadLocal 。但是子线程需要是新创建的，线程复用是不行的。另外在从
+
+    ```java
+    public class ThreadLocalTest {
+        static InheritableThreadLocal<User> threadLocal = new InheritableThreadLocal<>();
+        static ExecutorService executor = Executors.newFixedThreadPool(5);
+    
+        public static void main(String[] args) throws InterruptedException {
+            for (int i = 0; i < 10; i++) {
+                threadLocal.set(new User(i, Thread.currentThread().getName()));
+                new Thread(() -> {
+                    System.out.println(Thread.currentThread() + " - " + threadLocal.get());
+                }).start();
+            }
+        }
+    }
+    ```
+
+    输出结果，10 个线程能拿到 10 个不同的值。
+
+    ```
+    Thread[Thread-0,5,main] - User{id=0, name='main'}
+    Thread[Thread-2,5,main] - User{id=2, name='main'}
+    Thread[Thread-1,5,main] - User{id=1, name='main'}
+    Thread[Thread-3,5,main] - User{id=3, name='main'}
+    Thread[Thread-6,5,main] - User{id=6, name='main'}
+    Thread[Thread-4,5,main] - User{id=4, name='main'}
+    Thread[Thread-7,5,main] - User{id=7, name='main'}
+    Thread[Thread-5,5,main] - User{id=5, name='main'}
+    Thread[Thread-8,5,main] - User{id=8, name='main'}
+    Thread[Thread-9,5,main] - User{id=9, name='main'}
+    ```
+
+    ```java
+    public class ThreadLocalTest {
+        static InheritableThreadLocal<User> threadLocal = new InheritableThreadLocal<>();
+    
+        static ExecutorService executor = Executors.newFixedThreadPool(5);
+    
+        public static void main(String[] args) throws InterruptedException {
+            for (int i = 0; i < 10; i++) {
+                threadLocal.set(new User(i, Thread.currentThread().getName()));
+                executor.execute(() -> {
+                    System.out.println(Thread.currentThread() + " - " + threadLocal.get());
+                });
+            }
+    }
+    ```
+
+    如果使用线程池，输出结果只能拿到 5 个不同的值。
+
+    ```
+    Thread[pool-1-thread-2,5,main] - User{id=1, name='main'}
+    Thread[pool-1-thread-3,5,main] - User{id=2, name='main'}
+    Thread[pool-1-thread-1,5,main] - User{id=0, name='main'}
+    Thread[pool-1-thread-4,5,main] - User{id=3, name='main'}
+    Thread[pool-1-thread-1,5,main] - User{id=0, name='main'}
+    Thread[pool-1-thread-3,5,main] - User{id=2, name='main'}
+    Thread[pool-1-thread-2,5,main] - User{id=1, name='main'}
+    Thread[pool-1-thread-5,5,main] - User{id=4, name='main'}
+    Thread[pool-1-thread-1,5,main] - User{id=0, name='main'}
+    Thread[pool-1-thread-4,5,main] - User{id=3, name='main'}
+    ```
+
+    
 
 ### 死锁
 
