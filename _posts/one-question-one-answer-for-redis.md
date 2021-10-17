@@ -14,7 +14,9 @@ thumbnail:
 
 ### Redis 介绍
 
-速度快
+Redis 是一个开源的 kv 内存数据库。
+
+Redis 速度很快：
 
 1. 单进程单线程模型，没有上下文切换。
 2. 使用多路复用无阻塞 I/O 模型。
@@ -22,6 +24,103 @@ thumbnail:
 4. 数据结构简单，查找和操作的时间复杂度都是 O(1) 。
 
 ### Redis 安装
+
+下载
+
+```
+wget https://download.redis.io/releases/redis-3.2.8.tar.gz
+tar -zxf redis-3.2.8.tar.gz
+cd redis-3.2.8
+```
+
+编译安装
+
+```
+make && make test && make install
+```
+
+> make test 过程可能报错:
+>
+> 1. You need tcl 8.5 or newer in order to run the Redis test
+>
+>    需要安装 tcl 。
+>
+>    ```
+>    yum install tcl
+>    ```
+>
+> 2. NOREPLICAS Not enough good slaves to write 
+>
+>    修改当前目录文件 tests/integration/replication-2.tcl 将 after 1000 改为 after 10000 以延长等待时间。
+
+将 utils/redis_init_script 拷贝到 /etc/init.d/ 中，重命名为 redis_6379 。
+
+```
+cp utils/redis_init_script /etc/init.d/
+cd /etc/init.d/
+mv redis_init_script redis_6379 
+```
+
+创建 redis 的配置文件目录
+
+```
+mkdir -p /etc/redis
+```
+
+创建 redis 的持久化目录
+
+```
+mkdir -p /var/redis/6379
+```
+
+创建 redis 的日志目录
+
+```
+mkdir -p /var/log/redis/6379
+```
+
+修改 redis.conf 
+
+```
+daemonize yes									#让redis以后台进程运行
+pidfile /var/run/redis_6379.pid					#redis pid文件的位置
+port 6379										#端口号
+dir /var/redis/6379								#redis持久化文件的存储位置
+logfile /var/log/redis/6379/redis.log			#redis日志路径
+```
+
+将 redis.conf 拷贝到 /etc/redis ，重命名为 6379.conf 。
+
+```
+cp redis.conf /etc/redis/
+cd /etc/redis/
+mv redis.conf 6379.conf
+```
+
+启动 redis
+
+```
+cd /etc/init.d/
+redis_6379 start
+```
+
+设置为开机启动
+
+在 redis_6379 第二行加入 
+
+```
+# chkconfig: 2345 90 10
+```
+
+> 启动等级 2345 时自动启动 redis ，启动优先级为 90 ，关闭优先级为 10 。
+
+生效 chkconfig
+
+```
+chkconfig redis_6379 on
+```
+
+重启系统验证 redis 是否正常启动。
 
 
 
@@ -257,6 +356,8 @@ RDB 和 AOF 同时工作时
 默认是打开的，在 /etc/redis/6379.conf 中配置。
 
 ```
+save 900 1
+save 300 10
 save 60 10000 #每隔60秒有10000个key变更
 ```
 
@@ -279,11 +380,46 @@ auto-aof-rewrite-min-size 64mb
 
 AOF 文件修复
 
-如果在 append AOF 文件时宕机导致 AOF 文件损坏，可以用 redis-check-oaf --fix 命令修复。
+如果在 append AOF 文件时宕机导致 AOF 文件损坏，可以用 redis-check-aof --fix 命令修复。
+
+```
+redis-check-aof --fix appendonly.aof
+```
 
 
 
 ### 主从架构
+
+#### 主从搭建
+
+搭建 1-master-2-slave 读写分离集群。在3个节点安装 redis ，参考【redis 安装】。
+
+在 master 上修改 /etc/redis/6379.conf ，打开口令认证。
+
+```
+requirepass 123456
+```
+
+在 slave 上修改 /etc/redis/6379.conf ，打开 slaveof
+
+```
+slaveof hadoop1 6379
+slave-read-only yes		#默认打开，设置slave只读
+```
+
+slave 打开口令认证。
+
+```
+masterauth 123456
+```
+
+修改 bind ip ，主从节点都需要修改，默认是 127.0.0.1 ，只能本机访问，修改成自己的 ip 。
+
+```
+bind 192.168.67.201
+```
+
+重启验证主从集群是否正常。
 
 #### 主从的意义
 
@@ -299,23 +435,371 @@ AOF 文件修复
 
 slave 不会过期 key ，只会等待 master 处理过期 key 。如果 master 的 key 过期或者被 LRU 淘汰，master 会发送一个 del 命令给 salve 来清除 key 。
 
-#### 主从搭建
+#### 主从同步性能优化
+
+**fork 进程耗时问题**
+
+fork 子进程需要拷贝父进程的空间内存页表，会耗费一定的时间。一般来说，如果父进程有1G数据，那么 fork 耗时可能在 20ms 左右，如果是 10G-30G 就会耗时几百毫秒，所以 fork 可能就会拖慢 redis 响应时长。所以建议 redis 的内存控制在 10G 以内。
+
+**主从复制延迟问题**
+
+主从复制可能严重延迟，这时需要建立监控和报警机制。在 info replication 中可以看到 master 和 slave 复制的 offset ，两者的差值就是复制的延迟量，可以通过脚本，定时监控 info replication 信息，如果延迟过多，就进行报警。
+
+**主从复制风暴问题**
+
+在进行 RDB 复制时，如果同时有很多个 slave 从 master 同步数据，一份 RDB 就会同时发送到多个 slave ，导致网络带宽被打满。为了避免这种情况，如果在 master 下挂载多个 slave 时，尽量用树形结构，不要用星型结构。
+
+**AOF fsync 导致延迟**
+
+一般 fsync everysec 一秒一次，redis 主线程会检查两次 fsync 的时间，如果距上次 fsync 的时间超过了 2 秒，那么就会阻塞写请求。建议使用 SSD 硬盘。
 
 ### 哨兵架构
 
-#### 数据丢失场景及解决方案
+#### 哨兵集群搭建
+
+创建 sentinel 配置文件目录，将 sentinel.conf 拷贝到配置文件目录，重名为 5000.conf
+
+```
+mkdir -p /etc/sentinel
+cp sentinel.conf /etc/sentinel/
+cd /etc/sentinel
+mv sentinel.conf 5000.conf
+```
+
+创建 sentinel 工作目录
+
+```
+mkdir -p /var/sentinel/5000
+```
+
+创建 sentinel 的日志目录
+
+```
+mkdir -p /var/log/sentinel/5000
+```
+
+修改 /etc/sentinel/5000.conf
+
+```
+bind 192.168.67.201 #自己机器的ip
+prot 5000	#26379默认不能访问，需要配置防火墙
+dir /var/sentinel/5000
+logfile /var/log/sentinel/5000/sentinel.log
+daemonize yes
+sentinel monitor mymaster 192.168.67.201 6379 2
+sentinel auth-pass mymaster "123456"
+sentinel down-after-milliseconds mymaster 30000
+sentinel parallel-syncs mymaster 1
+sentinel failover-timeout mymaster 180000
+```
+
+三个机器都要修改。
+
+启动 sentinel 。
+
+```
+redis-sentinel /etc/sentinel/5000.conf
+```
+
+启动后会看到 sentinel 之间能够互相发现，则配置成功。
+
+```
+5015:X 16 Oct 15:57:45.739 # Sentinel ID is beae42f163a3808353cc546b45ac9c7ace383664
+5015:X 16 Oct 15:57:45.739 # +monitor master mymaster 192.168.67.201 6379 quorum 2
+5015:X 16 Oct 15:57:45.740 * +slave slave 192.168.67.202:6379 192.168.67.202 6379 @ mymaster 192.168.67.201 6379
+5015:X 16 Oct 15:57:45.740 * +slave slave 192.168.67.203:6379 192.168.67.203 6379 @ mymaster 192.168.67.201 6379
+5015:X 16 Oct 15:58:25.402 * +sentinel sentinel cbac5743cb7a1b4567e105345e58e2d65a2c6bb6 192.168.67.202 5000 @ mymaster 192.168.67.201 6379
+5015:X 16 Oct 15:59:06.584 * +sentinel sentinel 95fe530cdf664055dba222bc1e19a3b2ae663ff0 192.168.67.203 5000 @ mymaster 192.168.67.201 6379
+```
 
 
+
+#### sdown 和 odown
+
+sdown 是主观宕机，如果一个哨兵自己觉得 master 宕机了，那么就是主观宕机。
+
+odown 是客观宕机，如果 quorum 的数量的哨兵觉得 master 宕机了，那么就是客观宕机。
+
+如果一个哨兵 ping master ，超过了 is-master-down-after-milliseconds 指定的毫秒数，就认为是主观宕机。
+
+如果一个哨兵在指定时间内收到了 quorum 数量的其他哨兵也认为 master 是 sdown ，那么就认为 master 是 odown 。
+
+#### 哨兵的自动发现机制
+
+哨兵之间相互发现是通过 pub/sub 系统实现的。每个哨兵都会向 \_\_sentinel\_\_:hello 这个 topic 里发一条消息，其他哨兵都消费这个 topic 来感知其他哨兵的存在。过程是这样的：
+
+每隔 2 秒，每个哨兵都将自己的 host 、ip 、run id 以及对 master 的监控信息发送到自己订阅的 _\_sentinel\_\_:hello 中，同时也会监控其他哨兵的信息，并进行同步。
+
+#### slave切换成master过程
+
+哨兵监控集群状态，如果要进行 master 切换，首先需要 quorum 数量的哨兵认为 master odown ，然后选举出来一个哨兵做切换，同时这个哨兵需要得到 majority 数量的哨兵授权后才能正式执行切换。
+
+进行切换时，执行切换的哨兵会从新的 master 获得一个 configuration epoch 作为 version ，切换完成，执行切换的哨兵会生成 master 的最新配置，通过 pub/sub 同步给其他哨兵，其他哨兵根据 version 大小来更新自己的 master 配置。
+
+如果切换失败，那么其他哨兵会等待 failover-timeout 后继续执行切换，并会重新获取一个 configuration epoch ，每次切换 version 都是唯一的。
 
 #### 选举算法
 
+如果 slave 跟 master 断开连接已经超过了 down-after-milliseconds 的 10 倍 + master 宕机时长，那么这个 slave 不参加选举。
+
+(down-after-milliseconds * 10）+ milliseconds_since_master_is_in_SDOWN_state
+
+先看优先级，
+
+如果优先级相同，看复制偏移量（数据完整性），offset 越大，优先级越高，
+
+如果 offset 相同，选 run id 最小的。
+
+#### 数据丢失场景及解决方案
+
+**异步复制导致数据丢失**
+
+redis master 向 slave 复制数据是异步的，如果写到 master 上的数据还没有复制到 slave 上，此时 master 宕机，哨兵将 slave 提成 master ，那么在原 master 上的这部分数据就丢失了。
+
+**脑裂导致的数据丢失**
+
+如果 master 和 slave 出现网络分区，哨兵将 slave 提成 master ，此时集群就有 2 个 master 就出现了脑裂。如果 client 连的还是原来的 master ，会继续向原 master 写数据，当分区恢复，原 master 变成 slave ，这部分数据就丢失了。
+
+**解决方案**
+
+```
+min-slaves-to-write 1
+min-slaves-max-lag 10
+```
+
+至少有 1 个 salve 的复制不能超过 10 秒。一旦slave复制数据和ack的延时太长，就认为master宕机会损失较多数据，那么就拒绝写请求，以此来将数据丢失控制在可控范围。
+
+master 如果拒绝写请求，client 做降级，写本地磁盘缓存数据，等恢复后在继续处理。
 
 
-#### 哨兵集群搭建
 
 
 
-### redis cluster
+
+
+
+
+
+
+### Redis Cluster
+
+redis cluster 相当于 redis replication + 哨兵。要求最少 3 台 master 3台 slave 。生产环境下建议在 6 台机器上部署 redis cluster 。
+
+#### 缓存算法
+
+**hash 算法**
+
+对节点数取模，使数据分布在不同的节点上。
+
+弊端就是当一个节点宕机，会导致所有数据重新进行 hash 取模，相当于整个缓存数据不可用。
+
+**一致性hash 算法**
+
+将节点构成一个环，根据数据的 hash 值分布在环上位置，顺时针找下一个最近的节点进行数据存储。
+
+优点就是当节点失效，只有一个节点上的数据失效。
+
+弊端就是热点数据的可能存储不均导致某个节点负载过大。
+
+**虚拟节点算法**
+
+在一致性 hash 的基础上虚拟出多个虚拟节点。
+
+**hash slot 算法**
+
+集群节点均分 16384 个 hash solt ，根据 hash 对 16384 取模，找到对应的 hash solt ，如果一个节点宕机，那么只影响这个节点上的 hash solt 上的数据，redis 会自动将这个节点上的 hash solt 迁移到其他节点上。hash solt 的数量没有改变，所以不会影响其他 hash solt 上的数据。hash solt 的数量很多，也可以达到负载均衡的效果。
+
+#### 集群节点通信
+
+redis cluster 节点之间使用 gossip 协议进行通信。
+
+gossip 协议包含多种消息：
+
+meet：发送 meet 给新加入的节点，然后新节点开始与其他节点进行通信。
+
+ping：每个节点都会频繁的发送 ping 消息来交换元数据。
+
+pong：meet 和 ping 的响应信息。
+
+fail：某个节点判定另一个节点故障，就发送 fail 给其他节点。
+
+redis cluster 在各节点都维护一份元数据信息，每个节点都有一个专门用于节点间通信的端口（比如自己的服务端口是6379，那么通信端口就是 16379）。每个节点都会往另外几个节点发送 ping 消息，每个节点每秒会执行 10 次 ping ，每次会先择 5 个最久没有通信的节点。如果发现某个节点的通信延迟超过阈值（cluster_node_timeout/2），也会立刻发送 ping ，避免延迟过长。每次 ping 都会带上自己节点的信息和 1/10 个其他节点（最少 3 个）的信息发送出去，其他节点收到 ping 之后返回 pong 。通过这种方式来交换节点的故障信息，节点的增删信息，hash slot 信息等。
+
+### docker 安装 redis
+
+有时我们不想在自己机器上安装redis环境又想快速开始redis-cli实践，如果安装了docker环境，那么redis的环境将非常容易搭建。
+
+1. 下载redis的docker镜像
+
+   ```
+   sudo docker pull redis
+   ```
+
+   
+
+2. 启动redis server
+
+   ```
+   sudo docker run -d --name redisone redis redis-server
+   ```
+
+   
+
+3. 启动redis cli
+
+   ```
+   sudo docker run -it --link redisone redis redic-cli -h redisone -p 6379
+   ```
+
+   
+
+### spring-data-redis 的使用
+
+
+
+添加依赖
+
+```
+<dependency>
+    <groupId>org.springframework.data</groupId>
+    <artifactId>spring-data-redis</artifactId>
+    <version>1.6.4.RELEASE</version>
+</dependency>
+<dependency>
+    <groupId>redis.clients</groupId>
+    <artifactId>jedis</artifactId>
+    <version>2.6.2</version>
+</dependency>
+```
+
+配置文件
+
+redis.xml
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+
+
+    <context:property-placeholder location="classpath:config.properties"/>
+    <bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
+        <property name="maxTotal" value="${redis.cache.pool.maxTotal}" />
+        <property name="maxIdle" value="${redis.cache.pool.maxIdle}" />
+        <property name="maxWaitMillis" value="${redis.cache.pool.maxWaitMillis}" />
+        <property name="testOnBorrow" value="${redis.cache.pool.testOnBorrow}" />
+    </bean>
+
+    <bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate">
+        <property name="keySerializer">
+            <bean class="org.springframework.data.redis.serializer.StringRedisSerializer"/>
+        </property>
+        <property name="valueSerializer">
+            <bean class="org.springframework.data.redis.serializer.JdkSerializationRedisSerializer"/>
+        </property>
+        <property name="connectionFactory" ref="jedisConnectionFactory"/>
+    </bean>
+
+    <bean id="jedisConnectionFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory">
+        <property name="hostName" value="${redis.cache.ip}" />
+        <property name="port" value="${redis.cache.port}" />
+        <property name="usePool" value="${redis.cache.usePool}"/>
+        <property name="poolConfig" ref="jedisPoolConfig" />
+    </bean>
+
+    <bean id="queryCacheRepository" class="com.daas.data.dao.repository.QueryCacheRepository"></bean>
+
+</beans>
+```
+
+properties文件
+
+```
+redis.cache.pool.maxTotal=1024
+redis.cache.pool.maxIdle=200
+redis.cache.pool.maxWaitMillis=1000
+redis.cache.pool.testOnBorrow=true
+redis.cache.ip=192.168.11.21
+redis.cache.port=6379
+redis.cache.usePool=true
+```
+
+
+
+```
+public class QueryCache implements Serializable{
+
+    String id;
+    String value;
+
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+}
+
+public class QueryCacheRepository {
+
+    @Resource
+    private RedisTemplate<String, QueryCache> redisTemplate;
+
+    public void set(QueryCache qc){
+        redisTemplate.opsForValue().set(qc.getId(), qc);
+
+    }
+
+    public QueryCache get(String id){
+        return redisTemplate.opsForValue().get(id);
+    }
+}
+
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration("classpath:redis-test.xml")
+public class RedisServiceTest {
+
+
+    @Resource
+    QueryCacheRepository queryCacheRepository;
+
+    @Before
+    public void before() {
+        QueryCache qc = new QueryCache();
+        qc.setId("123");
+        qc.setValue("test");
+        queryCacheRepository.set(qc);
+    }
+
+    @Test
+    public void testGet() throws IOException {
+        QueryCache qc = queryCacheRepository.get("123");
+        System.out.println(qc.getValue());
+        assertThat(qc.getValue(), new IsEqual("test"));
+
+    }
+
+}
+```
+
+
+
+
+
+
 
 
 
@@ -329,7 +813,7 @@ A: 通过哨兵模式，至少 3 个节点，如果 master 挂了，slave 会被
 
 #### Q: 哨兵模式 master 挂了如何进行选主？
 
-A: 先看优先级，优先级相同，看复制偏移量（数据完整性），偏移量相同，取 id 最小的。
+A: 
 
 #### Q: Redis key 的过期的 key 是怎么删除的？
 
