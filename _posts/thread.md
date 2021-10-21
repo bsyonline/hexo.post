@@ -1,6 +1,6 @@
 ---
 title: Thread
-date: 2016-07-23 21:50:03
+date: 2021-07-23 21:50:03
 tags:
   - Interview
 category:
@@ -11,6 +11,10 @@ lede:
 ---
 
 
+
+
+
+## Part. I Thread
 
 ### 线程的状态
 
@@ -23,11 +27,27 @@ lede:
 * BLOCKED
   线程阻塞并等待锁，在调用 wait() 方法后进入或重新进入同步方法。
 * WAITTING
-  线程在执行特定的方法如： Object.wait(), Thread.join(), LockSupport.park() 后等待另一个线程执行特定的方法，如：Object.notify()/Object.notifyAll() 。
+  线程无线等待另一个线程执行特定的方法。比如：执行 Object.wait() 后等待另一个线程执行 Object.notify()/Object.notifyAll()。又或者执行Thread.join() 后等待指定线程退出。又或者执行了 LockSupport.park() 之后等待另一个线程执行 LockSupport.unpark() 。
 * TIMED_WAITTING
-  线程在执行特定方法后进入执行时间的等待状态，如： Thread.sleep(), Object.wait(), Thread.join(), LockSupport.parkNanos, LockSupport.parkUntil
+  线程等待指定的时间。比如执行了 Thread.sleep()，Object.wait(long timeout)， Thread.join(long millis)，LockSupport.parkNanos(Object blocker, long nanos)， LockSupport.parkUntil(Object blocker, long deadline) 等方法。
 * TERMINATED
   线程执行完成。
+
+
+
+### wait/notify/notifyAll
+
+
+
+### yeild
+
+
+
+### join
+
+
+
+### sleep
 
 
 
@@ -69,7 +89,6 @@ volatile 是 Java 语言的关键字，常常和 synchronized 进行比较。
 #### volatile 和 synchronized 比较
 
 <table style="font-size:12px;color:#333333;border-width: 1px;border-color: #666666;border-collapse: collapse;width:100%"><tr><th style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #dedede;"></th><th style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #dedede;">volatile</th><th style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #dedede;">synchronized</th></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">作用位置</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">变量</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">方法，代码块</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">同步对象</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">主内存和线程内存之间某个变量的值</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">主内存和线程内存之间所有变量的值</td></tr><tr><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">消耗资源</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">少</td><td style="border-width: 1px;padding: 8px;border-style: solid;border-color: #666666;background-color: #ffffff;">多</td></tr></table>
-
 volatile 不能像 synchronized 一样广泛的用于线程安全，因为 volatile 不能保证原子性，所以 volatile 不能保证线程安全。但是在某些特殊场景下使用 volatile 要比 synchronized 和锁简单和高效，还能使程序更加简单。
 
 #### 内存可见性
@@ -139,6 +158,10 @@ instance = memory;     //3：设置instance指向刚分配的内存地址
 
 1. 在每个 volatile 写操作前插入 StoreStore 屏障，在写操作后插入 StoreLoad 屏障。
 2. 在每个 volatile 读操作前插入 LoadLoad 屏障，在读操作后插入 LoadStore 屏障。
+
+
+
+## Part. II JUC
 
 
 
@@ -523,13 +546,28 @@ public class ReadWriteLockExample {
 
 
 
+### Happens-before
 
+在学习 java.util.concurrent 的过程中，经常看到一个词就是 happens-before 。happens-before 表示了两个操作之间的顺序关系， A happens-before B 就是说 A 在 B 之前执行，则 A 的执行结果对 B 是可见的。为了方便 A happens-before B 可以用 hb(A,B) 表示。
+
+#### **为什么需要 happens-before**
+
+了解过 JMM 模型都知道，线程在操作主内存中的变量时并不会直接在主内存中修改，而是将主内存中的数据拷贝到自己的工作内存，在多线程环境下就会面临可见性的问题。还有就是我们的代码在编译的时候编译器会对代码进行指令优化，有可能改变指令的顺序，从而导致结果和预期不一致。这些问题是非常复杂的，并且没有办法枚举出每一种情况，面对这样的情况，于是提出了一些通用的规则，这就是 happens-before 。
+
+#### **happens-before 规则**
+
+1. 如果线程 t1 对 A 解锁之后，线程 t2 又对 A 加锁，那么 t1 对 A 的操作对 t2 都是可见的。
+2. 对于一个 volatile 变量 A ，如果线程 t1 修改了 A 之后，线程 t2 读取了 A ，那么 t1 的修改对 t2 是可见的。
+3. 线程的 start() 在其他方法之前执行。
+4. 如果线程 t1 成功执行 t1.join() 之后执行线程 t2 那么 t1 中的操作对 t2 都是可见的。
+5. 如果线程 t1 执行了两个操作 A 和 B ，那么 A 中的操作对 B 都是可见的。 
+6. happens-before 具有传递性，如果 hb(A,B) , hb(B,C) , 那么可以得到 hb(A,C) 。 
 
 ### Condition
 
 Condition 是 java.util.concurrent 包中提供的接口，Condition 可以用来阻塞和唤醒线程，如果有多个线程，还可以指定唤醒某个线程。具体用法我们可以看一个例子：
 
-```
+```java
 public class ConditionTest {
 
     public static void main(String[] args) throws InterruptedException {
@@ -588,7 +626,7 @@ public class ConditionTest {
 
 CountDownLatch 是 java.util.concurrent 包中提供的一个倒计时器工具类。基本用法如下：
 
-```
+```java
 public class CountDownLatchTest {
     public static void main(String[] args) throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(3);
@@ -608,7 +646,7 @@ public class CountDownLatchTest {
 
 1. 初始化 CountDownLatch 。
 
-```
+```java
 public CountDownLatch(int count) {
 	if (count < 0) throw new IllegalArgumentException("count < 0");
 	this.sync = new Sync(count);
@@ -666,7 +704,7 @@ BlockingQueue 操作
 
 Future 是一个可终止的异步计算接口，它提供了一种异步计算方式。Future 代表了异步计算的结果，当计算没有完成，获取结果会被阻塞，直到计算完成。FutureTask 是 Future 接口的实现，可以接收 Runnable 和 Callable 对象，也可以使用 Executor.submit() 执行。
 
-```
+```java
 public class FutureExample {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         long start = System.currentTimeMillis();
@@ -745,7 +783,7 @@ cancel() 操作就比较简单了，更新状态，唤醒线程而已。
 总结一下：FutureTask 实现了 Runnable 接口，在 run() 方法中调用 callable.call() ，将结果保存到 outcome 。通过 get() 获取结果，如果任务没有执行完，则通过自旋将当前线程加入到 waiter 队列的头部，然后 park 线程。等到任务执行完成，通过 finishCompletion() 唤醒 waiter 队列中的线程，再次获取结果。
 
 >我们注意到，在 FutureTask 中声明的 outcome 并没有用 volatile 修饰，那是如何保证在多线程环境下修改了 outcome 立刻对其他线程可见的呢？
->这实际是利用了 [happens-before](../../../../2020/03/10/happens-before/) 规则。通过刚才的分析我们可以知道:
+>这实际是利用了 [happens-before](#Happens-before/) 规则。通过刚才的分析我们可以知道:
 
 1. state 是 volatile 的。
 2. ```outcome = v``` happens-before ```state == NORMAL``` 。

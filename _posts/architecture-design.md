@@ -539,37 +539,30 @@ Saga 是另一种著名分布式事务模型。1987 年论文 sagas 讲述了一
 事务状态表
 
 <table class="table table-bordered" style="width: 60px"><tr><td>tx_id</td><td>state</td><td>recover_step</td><td>timestamp</td></tr></table>
-
 事务调用表
 
 <table class="table table-bordered" style="width: 100px"><tr><td>tx_id</td><td>action_id</td><td>method</td><td>param_type</td><td>param_value</td></tr></table>
-
 saga 执行过程如下：
 
 1.AP 发起事务后 TM 生成 txId， 向事务状态表存一条记录，状态是执行中 。
 
 <table class="table table-bordered" style="width: 380px"><tr><td>tx_id</td><td style="width: 75px">state</td><td>recover_step</td><td>timestamp</td></tr><tr><td>1</td><td>执行中</td><td>0</td><td>1514736000</td></tr></table>
-
 2.AP 按顺序调用下单-减库存-支付操作，每调用一个操作之前向事务调用表插一条记录。
 
 <table class="table table-bordered" style="width: 100px"><tr><td>tx_id</td><td>action_id</td><td>recover_method</td><td>param_type</td><td>param_value</td></tr><tr><td>1</td><td>1</td><td>/recover_order</td><td>kv</td><td>orderid=12345</td></tr><tr><td>1</td><td>2</td><td>/recover_stock</td><td>kv</td><td>stock=1</td></tr><tr><td>1</td><td>3</td><td>/recover_payment</td><td>kv</td><td>pay=1000</td></tr></table>
-
 这些信息如何获取到呢，又是怎么写到表里的呢？ 假如我们有个方法 reduceStock() ，我们在调用方法的时候可以利用 AOP 或者动态代理，就可以获取到方法的参数类型和参数值。recoverMethod 的信息可以通过注解写在被调用的方法上，这样通过反射就可以获取到 recoverMethod 的信息了。得到这些信息之后，按位置插到事务调用表中就可以了。
 
 3.如果下单-减库存-支付都执行成功，TM 将事务状态表中的记录更新成成功，事务结束。
 
 <table class="table table-bordered" style="width: 60px"><tr><td>tx_id</td><td>state</td><td>recover_step</td><td>timestamp</td></tr><tr><td>1</td><td>成功</td><td>0</td><td>1514737000</td></tr></table>
-
 4.如果有一步执行失败，则将事务状态更新成失败，同时立刻通知客户端执行失败。
 
 <table class="table table-bordered" style="width: 60px"><tr><td>tx_id</td><td>state</td><td>recover_step</td><td>timestamp</td></tr><tr><td>1</td><td>失败</td><td>2</td><td>1514737000</td></tr></table>
-
 补偿是异步的，所以不用等补偿执行完成再通知客户端。
 
 5.TM 定时扫描事务状态表，如果有失败状态的记录，就按照事务调用表中对应的除最后一步调用记录之外的其他记录调补偿接口进行补偿。
 
 <table class="table table-bordered" style="width: 100px"><tr><td>tx_id</td><td>action_id</td><td>recover_method</td><td>param_type</td><td>param_value</td></tr><tr><td>1</td><td>1</td><td>/recover_order</td><td>kv</td><td>orderid=12345</td></tr><tr><td>1</td><td>2</td><td>/recover_stock</td><td>kv</td><td>stock=1</td></tr><tr><td>1</td><td>3</td><td>/recover_payment</td><td>kv</td><td>pay=1000</td></tr></table>
-
 如果表中有 3 条记录，说明前两条是执行成功的，第 3 条执行失败了。那么只需要执行前两步的补偿，第 3 步是不需要补偿的。那么接下来就按照事务调用表中记录的补偿接口的信息进行补偿。
 
 1. 首先将事务状态置为 3 (补偿中) 。
@@ -581,7 +574,6 @@ saga 执行过程如下：
 6.补偿完成后将事务状态表的状态更新成补偿完成。
 
 <table class="table table-bordered" style="width: 360px"><tr><td>tx_id</td><td style="width: 90px">state</td><td>timestamp</td></tr><tr><td>1</td><td>补偿完成</td><td>1514739000</td></tr></table>
-
 如果补偿接口出现问题，怎么办呢，我们需不需要再给补偿接口加一个分布式事务呢？一般情况下，经过测试并且有重试机制，补偿是可以成功。我们完全没有必要再加一个分布式事务来保证补偿，因为我们一旦给补偿加上分布式事务，那我们是不是也要对保证补偿的逻辑再加一个分布式事务来保证一致性呢，这样就无穷无尽了。所以简单的做法就是一旦真的补偿接口出错了，那么记录错误日志，告警，然后人工处理就好了。
 
 ###### **异步消息**
@@ -648,29 +640,15 @@ Saga 是一种同步串行的方式，接下来我们介绍异步消息的分布
 
 ### Database
 
-[MySQL](../../../../2019/07/28/one-question-one-answer-for-mysql/)
-
-[Mysql High Availabity](../../../../2020/09/05/mysql-high-availabity/)
-
-[MySQL Log](../../../../2020/03/21/mysql-log/)
+[MySQL in Action](../../../../2099/05/05/mysql-in-action/)
 
 ### MQ
 
-[Learning Guide for RocketMQ](../../../../2021/05/07/learning-guide-for-rocketmq/)
+[MQ](../../../../2021/09/03/mq/)
 
-[One Question One Answer for MQ](../../../../2021/03/03/one-question-one-answer-for-mq/)
+### Cache
 
-[RabbitMQ Concepts and Glossary](../../../../2020/04/25/rabbitmq-concepts-and-glossary/)
-
-[RabbitMQ Exchange Types](../../../../2020/04/25/rabbitmq-exchange-types/)
-
-[Rabbitmq Cluster](../../../../2020/04/27/rabbitmq-cluster/)
-
-[RabbitMQ Management GUI](../../../..2020/04/27/rabbitmq-management-gui/)
-
-### Redis
-
-[One Question One Answer for Redis](../../../../2020/03/17/one-question-one-answer-for-redis/)
+[Cache](../../../../2021/09/17/cache/)
 
 ### ES
 

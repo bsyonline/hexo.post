@@ -1,12 +1,12 @@
 ---
-title: design pattern
+title: Design Pattern
 tags:
   - untag
 category:
   - uncategory
 author: bsyonline
 lede: 没有摘要
-date: 2021-06-19 09:59:47
+date: 2099-06-19 09:59:47
 thumbnail:
 ---
 

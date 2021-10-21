@@ -309,7 +309,7 @@ Explain 结果显示了 12 列（黑体是我们需要重点关注的列）。
 
 select_type 有以下一些值：
 
-###### 1. SIMPLE
+**1. SIMPLE**
 
 简单 SELECT（不使用 UNION 或子查询）。
 
@@ -333,7 +333,7 @@ possible_keys: NULL
 
 
 
-###### 2. PRIMARY
+**2. PRIMARY**
 
 最外层 SELECT 。
 
@@ -370,7 +370,7 @@ possible_keys: NULL
 
 
 
-###### 3. UNION
+**3. UNION**
 
 UNION 中第二个及以后的 SELECT 语句。
 
@@ -453,7 +453,7 @@ possible_keys: PRIMARY
 
 
 
-###### 4. DEPENDENT UNION
+**4. DEPENDENT UNION**
 
 UNION 中的第二个及以后的 SELECT 语句，依赖外层查询。
 
@@ -514,7 +514,7 @@ possible_keys: NULL
 4 rows in set, 1 warning (0.00 sec)
 ```
 
-###### 5. UNION RESULT
+**5. UNION RESULT**
 
 UNION 的结果。
 
@@ -564,7 +564,7 @@ possible_keys: NULL
 
 
 
-###### 6. SUBQUERY
+**6. SUBQUERY**
 
 子查询中第一个 SELECT 语句。
 
@@ -601,7 +601,7 @@ possible_keys: NULL
 
 
 
-###### 7. DEPENDENT SUBQUERY
+**7. DEPENDENT SUBQUERY**
 
 子查询中第一个 SELECT 语句，依赖外部查询。
 
@@ -638,7 +638,7 @@ possible_keys: PRIMARY
 
 
 
-###### 8. DERIVED
+**8. DERIVED**
 
 derived 表
 
@@ -675,13 +675,13 @@ possible_keys: PRIMARY
 
 
 
-###### 9. MATERIALIZED
+**9. MATERIALIZED**
 
-###### 10. UNCACHEABLE SUBQUERY
+**10. UNCACHEABLE SUBQUERY**
 
 子查询结果无法缓存，必须针对外部查询的每一行重新进行评估。
 
-###### 11. UNCACHEABLE UNION
+**11. UNCACHEABLE UNION**
 
 UNION 中的第二个及以后的 SELETE 语句，并且这个 UNION 属于 UNCACHEABLE SUBQUERY 。
 
@@ -750,11 +750,11 @@ table 对应的是表名，比如 t1 ，或者是临时表的名字。将查询�
 
 ##### **type**（重要）
 
-###### 1. system
+**1. system**
 
 该表只有一行记录。system 是 const 的特例。
 
-###### 2. const（重要）
+**2. const（重要）**
 
 全表最多只有一行匹配。
 
@@ -778,7 +778,7 @@ possible_keys: PRIMARY
 
 
 
-###### 3. eq_ref（重要）
+**3. eq_ref（重要）**
 
 A 连接 B ，B 的连接字段是主键或唯一索引。
 
@@ -815,7 +815,7 @@ possible_keys: PRIMARY
 
 
 
-###### 4. ref（重要）
+**4. ref（重要）**
 
 字段是普通索引。
 
@@ -872,11 +872,11 @@ possible_keys: i_name
 
 
 
-###### 5. fulltext
+**5. fulltext**
 
 使用 fulltext 索引。
 
-###### 6. ref_or_null
+**6. ref_or_null**
 
 类似 ref ，但是还会搜索包含 NULL 的行。
 
@@ -898,11 +898,11 @@ possible_keys: NULL
 1 row in set, 1 warning (0.00 sec)
 ```
 
-###### 7. unique_subquery
+**7. unique_subquery**
 
-###### 8. index_subquery
+**8. index_subquery**
 
-###### 9. index_merge
+**9. index_merge**
 
 ```
 mysql> explain select * from t_user where name='Tom' or skill is null\G
@@ -924,7 +924,7 @@ possible_keys: NULL
 
 
 
-###### 10. range（重要）
+**10. range（重要）**
 
 范围查询。
 
@@ -968,7 +968,7 @@ possible_keys: i_name
 
 
 
-###### 11. index（重要）
+**11. index（重要）**
 
 查询字段全都有索引（即不用回表）。
 
@@ -992,7 +992,7 @@ possible_keys: NULL
 
 
 
-###### 12. ALL
+**12. ALL**
 
 全表扫描，查询的字段不全都有索引，是在 server 层过滤数据。
 
@@ -1071,7 +1071,7 @@ possible_keys: i_dept_id
 
 ##### Extra（重要）
 
-###### 1. NULL
+**1. NULL**
 
 查询的列没有被索引覆盖，必须通过回表进行查询。
 
@@ -1095,7 +1095,7 @@ possible_keys: name
 
 > name 有索引
 
-###### 2. Using index
+**2. Using index**
 
 只使用索引查询列的信息，这种情况一般都是使用了索引覆盖。
 
@@ -1119,7 +1119,7 @@ possible_keys: name
 
 > name 有索引
 
-###### 3. Using where
+**3. Using where**
 
 where 条件是索引之一。索引失效，在 server 层进行过滤。
 
@@ -1143,7 +1143,7 @@ possible_keys: NULL
 
 > age 没有索引
 
-###### 4. Using index condition
+**4. Using index condition**
 
 使用了索引下推优化。
 
@@ -1167,15 +1167,15 @@ possible_keys: i_name_age
 
 > name 和 age 是组合索引
 
-###### 5. Using temporary
+**5. Using temporary**
 
 查询使用了临时表，临时表创建和维护成本很高，所以一般需要考虑优化。
 
-###### 6. Using filesort
+**6. Using filesort**
 
 文件排序。filesort 耗时，一般需要考虑优化成索引排序。
 
-###### 7. Using join buffer
+**7. Using join buffer**
 
 连接条件没有使用索引，需要优化。
 
