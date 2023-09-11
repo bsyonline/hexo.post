@@ -112,14 +112,14 @@ nohup /opt/rocketmq/bin/mqbroker -n localhost:9876 -c /opt/rocketmq/conf/broker.
 
 ```
 export NAMESRV_ADDR=127.0.0.1:9876
-sh /opt/rocketmq/bin/tools.sh rg.apache.rocketmq.example.quickstart.Producer
+sh /opt/rocketmq/bin/tools.sh org.apache.rocketmq.example.quickstart.Producer
 ```
 
 消费消息
 
 ```
 export NAMESRV_ADDR=127.0.0.1:9876
-sh /opt/rocketmq/bin/tools.sh rg.apache.rocketmq.example.quickstart.Consumer
+sh /opt/rocketmq/bin/tools.sh org.apache.rocketmq.example.quickstart.Consumer
 ```
 
 ### 命令
