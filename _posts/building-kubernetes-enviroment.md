@@ -258,6 +258,8 @@ yum install -y docker-compose
 
 # 下载harbor
 wget https://github.com/goharbor/harbor/releases/download/v2.5.3/harbor-offline-installer-v2.5.3.tgz
+# 国内镜像
+# wget https://ghproxy.com/https://github.com/goharbor/harbor/releases/download/v2.5.3/harbor-offline-installer-v2.5.3.tgz
 tar -zxf harbor-offline-installer-v2.5.3.tgz -C /data/
 cd /data/harbor
 
@@ -317,18 +319,18 @@ systemctl status harbor
 
 ```
 # 打标签
-docker tag nginx:latest 192.168.67.203/public-repo/nginx:1.21.5
+docker tag nginx:latest k8s-registry.com/library/nginx:1.21.5
 
 # 登录
-docker login 192.168.67.203       
+docker login k8s-registry.com      
 Username: guest
 Password: Aa123456
 
 # 上传镜像
-docker push 192.168.67.203/public-repo/nginx:1.21.5
+docker push k8s-registry.com/library/nginx:1.21.5
 
 # 拉镜像
-docker pull 192.168.67.203/public-repo/nginx:1.21.5
+docker pull k8s-registry.com/library/nginx:1.21.5
 ```
 
 
@@ -355,8 +357,8 @@ images=$(kubeadm config images list --kubernetes-version=1.28.1 | awk -F "/" '{p
 for i in ${images} 
 do   
   docker pull registry.aliyuncs.com/google_containers/$i
-  docker tag registry.aliyuncs.com/google_containers/$i 192.168.67.203/google_containers/$i
-  docker push 192.168.67.203/google_containers/$i
+  docker tag registry.aliyuncs.com/google_containers/$i k8s-registry.com/google_containers/$i
+  docker push k8s-registry.com/google_containers/$i
   docker rmi registry.aliyuncs.com/google_containers/$i
 done
 ```
@@ -367,7 +369,7 @@ master节点
 kubeadm init \
 --kubernetes-version=1.28.1 \
 --apiserver-advertise-address=192.168.67.201 \
---image-repository=192.168.67.203/google_containers \
+--image-repository=k8s-registry.com/google_containers \
 --pod-network-cidr="10.244.0.0/16" \
 --service-cidr="10.96.0.0/12" \
 --ignore-preflight-errors=Swap \
@@ -375,6 +377,8 @@ kubeadm init \
 ```
 
 node节点
+
+初始化完成，按照 master 命令行复制。
 
 ```
 kubeadm join 192.168.67.201:6443 \
