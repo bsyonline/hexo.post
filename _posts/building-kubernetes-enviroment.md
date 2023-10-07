@@ -70,19 +70,50 @@ kebernetes 集群部署有几种方式：
 
 配置 host
 
-
+```
+192.168.93.201 k8s-master.com k8s-master
+192.168.93.202 k8s-node1.com  k8s-node1
+192.168.93.203 k8s-node2.com  k8s-node2
+192.168.93.204 k8s-registry.com  k8s-registry
+```
 
 配置主机名
 
-
+```
+hostnamectl set-hostname k8s-master
+```
 
 配置静态ip
 
-
+```
+# cat /etc/sysconfig/network-scripts/ifcfg-eth0
+TYPE=Ethernet
+PROXY_METHOD=none
+BROWSER_ONLY=no
+BOOTPROTO=static
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=stable-privacy
+NAME=ens33
+UUID=58fd05ce-43bf-4bd8-9ef3-2888746afea9
+DEVICE=ens33
+ONBOOT=yes
+IPADDR=192.168.93.201
+PREFIX=24
+GATEWAY=192.168.93.2
+DNS1=114.114.114.114
+```
 
 关闭防火墙
 
-
+```
+systemctl disable firewalld.service
+systemctl stop firewalld.service
+```
 
 关闭SELinux
 
@@ -489,7 +520,7 @@ source ~/.bashrc
 创建pod
 
 ```
-# kubectl run my-nginx --image=192.168.67.203/public-repo/nginx:1.21.5
+# kubectl run my-nginx --image=k8s-registry.com/library/nginx:1.21.5
 pod/my-nginx created
 ```
 
@@ -504,33 +535,33 @@ my-nginx   1/1     Running   0          56s
 查看pod创建过程
 
 ```
-# kubectl describe pod my-nginx
-Name:             my-nginx
+# kubectl describe pod nginx
+Name:             nginx
 Namespace:        default
 Priority:         0
 Service Account:  default
-Node:             hadoop2/192.168.67.202
-Start Time:       Sat, 09 Sep 2023 10:43:18 +0800
-Labels:           run=my-nginx
+Node:             k8s-node2/192.168.93.203
+Start Time:       Mon, 18 Sep 2023 23:17:22 +0800
+Labels:           run=nginx
 Annotations:      <none>
 Status:           Running
-IP:               10.244.1.2
+IP:               10.244.2.9
 IPs:
-  IP:  10.244.1.2
+  IP:  10.244.2.9
 Containers:
-  my-nginx:
-    Container ID:   docker://ef69dfc863b8ae17c29dd9797a35337e345af09f08f732e6a2e8711a6012d169
-    Image:          192.168.67.203/public-repo/nginx:1.21.5
-    Image ID:       docker-pullable://192.168.67.203/public-repo/nginx@sha256:ee89b00528ff4f02f2405e4ee221743ebc3f8e8dd0bfd5c4c20a2fa2aaa7ede3
+  nginx:
+    Container ID:   docker://18b65f77faf6dc944fb84b8e8a6d5b1b0b992598814ff1449bd48a4a7d4f84ba
+    Image:          k8s-registry.com/library/nginx:1.21.5
+    Image ID:       docker-pullable://k8s-registry.com/library/nginx@sha256:ee89b00528ff4f02f2405e4ee221743ebc3f8e8dd0bfd5c4c20a2fa2aaa7ede3
     Port:           <none>
     Host Port:      <none>
     State:          Running
-      Started:      Sat, 09 Sep 2023 10:43:19 +0800
+      Started:      Mon, 18 Sep 2023 23:17:24 +0800
     Ready:          True
     Restart Count:  0
     Environment:    <none>
     Mounts:
-      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-h8t7c (ro)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-8tcpm (ro)
 Conditions:
   Type              Status
   Initialized       True 
@@ -538,7 +569,7 @@ Conditions:
   ContainersReady   True 
   PodScheduled      True 
 Volumes:
-  kube-api-access-h8t7c:
+  kube-api-access-8tcpm:
     Type:                    Projected (a volume that contains injected data from multiple sources)
     TokenExpirationSeconds:  3607
     ConfigMapName:           kube-root-ca.crt
@@ -551,16 +582,16 @@ Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists fo
 Events:
   Type    Reason     Age    From               Message
   ----    ------     ----   ----               -------
-  Normal  Scheduled  2m26s  default-scheduler  Successfully assigned default/my-nginx to hadoop2
-  Normal  Pulled     2m25s  kubelet            Container image "192.168.67.203/public-repo/nginx:1.21.5" already present on machine
-  Normal  Created    2m25s  kubelet            Created container my-nginx
-  Normal  Started    2m25s  kubelet            Started container my-nginx
+  Normal  Scheduled  3m38s  default-scheduler  Successfully assigned default/nginx to k8s-node2
+  Normal  Pulled     3m38s  kubelet            Container image "k8s-registry.com/library/nginx:1.21.5" already present on machine
+  Normal  Created    3m37s  kubelet            Created container nginx
+  Normal  Started    3m37s  kubelet            Started container nginx
 ```
 
 查看日志
 
 ```
-# kubectl logs my-nginx
+# kubectl logs nginx
 /docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
 /docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/
 /docker-entrypoint.sh: Launching /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh
@@ -569,21 +600,22 @@ Events:
 /docker-entrypoint.sh: Launching /docker-entrypoint.d/20-envsubst-on-templates.sh
 /docker-entrypoint.sh: Launching /docker-entrypoint.d/30-tune-worker-processes.sh
 /docker-entrypoint.sh: Configuration complete; ready for start up
-2023/09/09 02:43:19 [notice] 1#1: using the "epoll" event method
-2023/09/09 02:43:19 [notice] 1#1: nginx/1.21.5
-2023/09/09 02:43:19 [notice] 1#1: built by gcc 10.2.1 20210110 (Debian 10.2.1-6) 
-2023/09/09 02:43:19 [notice] 1#1: OS: Linux 3.10.0-1062.el7.x86_64
-2023/09/09 02:43:19 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
-2023/09/09 02:43:19 [notice] 1#1: start worker processes
-2023/09/09 02:43:19 [notice] 1#1: start worker process 31
-2023/09/09 02:43:19 [notice] 1#1: start worker process 32
+2023/09/18 15:17:24 [notice] 1#1: using the "epoll" event method
+2023/09/18 15:17:24 [notice] 1#1: nginx/1.21.5
+2023/09/18 15:17:24 [notice] 1#1: built by gcc 10.2.1 20210110 (Debian 10.2.1-6) 
+2023/09/18 15:17:24 [notice] 1#1: OS: Linux 3.10.0-1160.71.1.el7.x86_64
+2023/09/18 15:17:24 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+2023/09/18 15:17:24 [notice] 1#1: start worker processes
+2023/09/18 15:17:24 [notice] 1#1: start worker process 31
+2023/09/18 15:17:24 [notice] 1#1: start worker process 32
+10.244.2.1 - - [18/Sep/2023:15:18:30 +0000] "GET / HTTP/1.1" 200 615 "-" "curl/7.29.0" "-"
 ```
 
 进入容器
 
 ```
-# kubectl exec -it my-nginx -- /bin/bash
-root@my-nginx:/# curl localhost
+# kubectl exec -it nginx -- /bin/bash
+root@nginx:/# curl localhost
 <!DOCTYPE html>
 <html>
 <head>
@@ -607,7 +639,7 @@ Commercial support is available at
 <p><em>Thank you for using nginx.</em></p>
 </body>
 </html>
-root@my-nginx:/# exit
+root@nginx:/# exit
 exit
 ```
 
@@ -615,9 +647,9 @@ exit
 
 ```
 # kubectl get pod -o wide
-NAME       READY   STATUS    RESTARTS   AGE    IP           NODE      NOMINATED NODE   READINESS GATES
-my-nginx   1/1     Running   0          9m4s   10.244.1.2   hadoop2   <none>           <none>
-# curl 10.244.1.2
+NAME      READY   STATUS    RESTARTS   AGE     IP            NODE        NOMINATED NODE   READINESS GATES
+nginx     1/1     Running   0          5m34s   10.244.2.9    k8s-node2   <none>           <none>
+# curl 10.244.2.9
 <!DOCTYPE html>
 <html>
 <head>
@@ -646,11 +678,11 @@ Commercial support is available at
 通过 yaml 创建容器
 
 ```
-# kubectl get pod my-nginx -o yaml > my-nginx.yaml
-# kubectl apply -f my-nginx.yaml
-pod/my-nginx-by-yaml created
-# kubectl delete -f my-nginx.yaml 
-pod "my-nginx-by-yaml" deleted
+# kubectl get pod my-nginx -o yaml > 010_pod_nginx.yaml
+# kubectl apply -f 010_pod_nginx.yaml
+pod/nginx created
+# kubectl delete -f nginx.yaml 
+pod "nginx" deleted
 ```
 
 #### Deployment
@@ -658,38 +690,38 @@ pod "my-nginx-by-yaml" deleted
 创建deployment
 
 ```
-# kubectl create deployment my-nginx-deployment --image=k8s-registry.com/library/nginx:1.21.5
-deployment.apps/my-nginx-deployment created
+# kubectl create deployment nginx --image=k8s-registry.com/library/nginx:1.21.5
+deployment.apps/nginx created
 # kubectl get deployment
-NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
-my-nginx-deployment   1/1     1            1           61s
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+nginx   1/1     1            1           61s
 # kubectl get rs
-NAME                             DESIRED   CURRENT   READY   AGE
-my-nginx-deployment-85bb584974   1         1         1       2m5s
-# kubectl delete deployments.apps my-nginx-deployment 
-deployment.apps "my-nginx-deployment" deleted
+NAME               DESIRED   CURRENT   READY   AGE
+nginx-85bb584974   1         1         1       2m5s
+# kubectl delete deployments.apps nginx 
+deployment.apps "nginx" deleted
 ```
 
 使用 yaml 创建 deployment
 
 ```
-# create deployment my-nginx-deployment --image=192.168.67.203/public-repo/nginx:1.21.5 --dry-run=client -o yaml > my-nginx-deployment.yaml
-# kubectl create -f my-nginx-deployment.yaml 
-deployment.apps/my-nginx-deployment created
+# kubectl create deployment nginx --image=k8s-registry.com/library/nginx:1.21.5 --dry-run=client -o yaml > 020_deploy_nginx.yaml
+# kubectl create -f 020_deploy_nginx.yaml 
+deployment.apps/nginx created
 ```
 
 修改 deployment 配置
 
 ```
-# kubectl edit deployments.apps my-nginx-deployment 
-deployment.apps/my-nginx-deployment edited
+# kubectl edit deployments.apps nginx 
+deployment.apps/nginx edited
 ```
 
 动态调整 pod 数量
 
 ```
-# kubectl scale deployment my-nginx-deployment --replicas=5
-deployment.apps/my-nginx-deployment scaled
+# kubectl scale deployment nginx --replicas=5
+deployment.apps/nginx scaled
 ```
 
 #### Namespace
@@ -725,12 +757,12 @@ my-nginx-by-yaml   1/1     Running   0          30s
 
 
 ```
-# kubectl expose deployment  my-nginx-deployment --port=80
-service/my-nginx-deployment exposed
+# kubectl expose deployment  nginx --port=80
+service/nginx exposed
 # kubectl get svc
-NAME                  TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
-kubernetes            ClusterIP   10.96.0.1       <none>        443/TCP   15h
-my-nginx-deployment   ClusterIP   10.101.246.40   <none>        80/TCP    5m20s
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP   5d16h
+nginx        ClusterIP   10.108.211.75   <none>        80/TCP    11s
 ```
 
 
@@ -771,10 +803,14 @@ nginx-5954f9f48-rl4g2   1/1     Running   0          15m   10.244.1.16   k8s-nod
 
 
 
-
-
-### Pod
-
+```
+# kubectl apply -f 030_svc_nginx.yaml 
+service/nginx created
+[root@k8s-master kubernetes]# kubectl get svc -o wide
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE     SELECTOR
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP   5d17h   <none>
+nginx        ClusterIP   10.105.130.28   <none>        80/TCP    23s     app=nginx
+```
 
 
 ### 服务发现
