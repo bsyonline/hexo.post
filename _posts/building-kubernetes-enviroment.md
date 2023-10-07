@@ -36,7 +36,7 @@ thumbnail:
 14. Minikube：本地运行 Kubernetes 的一种工具。
 15. kubeadm：用来快速安装 Kubernetes 并搭建安全稳定的集群的工具。
 16. Pod：可以在 Kubernetes 中创建和管理的、最小的可部署的计算单元。
-17. Label：标签是一些关联到 [Pods](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/)这类对象上的键值对，用来为对象设置可标识的属性标记，通常用来组织和选择对象子集。
+17. Label：标签是一些关联到 Pods 这类对象上的键值对，用来为对象设置可标识的属性标记，通常用来组织和选择对象子集。
 18. PodTemplate: Pod 的定义的模板。
 19. ReplicationController：通常缩写为 "rc"，用来管理控制 pod 数量。
 20. ReplicaSet：通常缩写为 "rs"，由 rc 发展而来，比 rc 功能更多。
@@ -48,10 +48,10 @@ thumbnail:
 26. HPA：弹性伸缩，Pod 水平自动扩缩器（Horizontal Pod Autoscaler）是一种 API 资源，它根据目标 CPU 利用率或自定义度量目标扩缩 Pod 副本的数量。
 27. LimitRange：提供约束来限制命名空间中每个 Container 或 Pod 的资源消耗。
 28. ClusterRole：
-29. ClusterRoleBinding：集群级别的角色绑定
-30. 
-31. 
-32. 
+29. ClusterRoleBinding：集群级别的角色绑定。
+30. PV
+31. PVC
+32. SC
 33. 
 34. 
 35. 
@@ -165,7 +165,7 @@ cat <<EOF | sudo tee /etc/docker/daemon.json
 {
   "registry-mirrors": ["https://xqnrfb7c.mirror.aliyuncs.com"],
   "dns": ["114.114.114.114", "8.8.8.8"],
-  "insecure-registries": ["node3"],
+  "insecure-registries": ["k8s-registry.com"],
   "exec-opts": ["native.cgroupdriver=systemd"]
 }
 EOF
@@ -248,8 +248,6 @@ systemctl is-active cri-docker
 
 
 #### 安装harbor
-
-
 
 ```
 # 安装docker-compose
@@ -363,6 +361,8 @@ do
 done
 ```
 
+
+
 master节点
 
 ```
@@ -413,16 +413,16 @@ wget https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel
 
 docker pull flannel/flannel:v0.22.2 
 docker pull flannel/flannel-cni-plugin:v1.2.0
-docker tag flannel/flannel:v0.22.2 192.168.67.203/public-repo/flannel:v0.22.2
-docker tag flannel/flannel-cni-plugin:v1.2.0 192.168.67.203/public-repo/flannel-cni-plugin:v1.2.0
-docker push 192.168.67.203/public-repo/flannel:v0.22.2
-docker push 192.168.67.203/public-repo/flannel-cni-plugin:v1.2.0
+docker tag flannel/flannel:v0.22.2 k8s-registry.com/flannel/flannel:v0.22.2
+docker tag flannel/flannel-cni-plugin:v1.2.0 k8s-registry.com/flannel/flannel-cni-plugin:v1.2.0
+docker push k8s-registry.com/flannel/flannel:v0.22.2
+docker push k8s-registry.com/flannel/flannel-cni-plugin:v1.2.0
 ```
 
 修改 kube-flannel.yml ，替换官方仓库为 harbor 地址。
 
 ```
-sudo sed -i 's/docker.io\/flannel/192.168.67.203\/public-repo/g' kube-flannel.yml
+sudo sed -i 's/docker.io/k8s-registry.com/g' kube-flannel.yml
 ```
 
 创建 flanel
@@ -450,7 +450,41 @@ systemctl enable kubelet cri-docker docker
 
 
 
+如果初始化失败或集群有问题，可以通过 reset 命令重置，master 和 node 节点都要执行。
+
+```
+kubeadm reset --cri-socket=unix:///var/run/cri-dockerd.sock
+```
+
+
+
+#### 后置操作
+
+##### 自动补全
+
+```
+echo "source <(kubectl completion bash)" >> ~/.bashrc 
+echo "source <(kubeadm completion bash)" >> ~/.bashrc 
+source ~/.bashrc
+```
+
+
+
+##### 非master节点配置kubectl
+
+```
+# 从master拷贝配置文件到node节点
+scp /etc/kubernetes/admin.conf k8s-node1:/etc/kubernetes/
+# 配置环境变量
+echo 'export KUBECONFIG=/etc/kubernetes/admin.conf' >> ~/.bashrc 
+source ~/.bashrc
+```
+
+
+
 ### 常用命令
+
+#### Pod
 
 创建pod
 
@@ -619,10 +653,12 @@ pod/my-nginx-by-yaml created
 pod "my-nginx-by-yaml" deleted
 ```
 
+#### Deployment
+
 创建deployment
 
 ```
-# kubectl create deployment my-nginx-deployment --image=192.168.67.203/public-repo/nginx:1.21.5
+# kubectl create deployment my-nginx-deployment --image=k8s-registry.com/library/nginx:1.21.5
 deployment.apps/my-nginx-deployment created
 # kubectl get deployment
 NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
@@ -655,6 +691,8 @@ deployment.apps/my-nginx-deployment edited
 # kubectl scale deployment my-nginx-deployment --replicas=5
 deployment.apps/my-nginx-deployment scaled
 ```
+
+#### Namespace
 
 创建 namespace
 
@@ -697,7 +735,45 @@ my-nginx-deployment   ClusterIP   10.101.246.40   <none>        80/TCP    5m20s
 
 
 
+#### Service
 
+```
+# kubectl expose deploy nginx --port=80
+service/nginx exposed
+
+# kubectl get svc
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   93m
+nginx        ClusterIP   10.99.1.55   <none>        80/TCP    13s
+
+# kubectl describe svc nginx 
+Name:              nginx
+Namespace:         default
+Labels:            app=nginx
+Annotations:       <none>
+Selector:          app=nginx
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.99.1.55
+IPs:               10.99.1.55
+Port:              <unset>  80/TCP
+TargetPort:        80/TCP
+Endpoints:         10.244.1.16:80
+Session Affinity:  None
+Events:            <none>
+
+# kubectl get pod -o wide
+NAME                    READY   STATUS    RESTARTS   AGE   IP            NODE        NOMINATED NODE   READINESS GATES
+nginx                   1/1     Running   0          42m   10.244.1.13   k8s-node1   <none>           <none>
+nginx-5954f9f48-rl4g2   1/1     Running   0          15m   10.244.1.16   k8s-node1   <none>           <none>
+```
+
+
+
+
+
+### Pod
 
 
 
