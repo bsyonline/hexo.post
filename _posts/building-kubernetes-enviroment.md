@@ -742,6 +742,23 @@ nginx        ClusterIP   10.105.130.28   <none>        80/TCP    23s     app=ngi
 
 ### 服务发现
 
+#### Service
+
+在 k8s 中，Service 可以将一组具有相同功能的 pod 提供一个统一的入口地址，并将请求进行负载分发到各个 pod 上。
+
+Service 有四种类型，包括：
+
+1. ClusterIp：这是默认类型，自动分配一个仅 Cluster 内部可以访问的虚拟 IP 。
+2. NodePort：在 ClusterIP 基础上为 Service 在每台机器上绑定一个端口，这样就可以通过 NodePort 来访问该服务。
+3. LoadBalancer：在 NodePort 的基础上，借助 Cloud Provider 创建一个外部负载均衡器，并将请求转发到NodePort 。
+4. ExternalName：把集群外部的服务引入到集群内部来，在集群内部直接使用。 没有任何类型代理被创建，这只有 Kubernetes 1.7 或更高版本的 kube-dns 才支持。
+
+
+
+#### ingress
+
+
+
 
 
 ### Helm
