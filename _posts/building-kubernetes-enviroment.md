@@ -74,7 +74,7 @@ kebernetes 集群部署有几种方式：
 192.168.93.201 k8s-master.com k8s-master
 192.168.93.202 k8s-node1.com  k8s-node1
 192.168.93.203 k8s-node2.com  k8s-node2
-192.168.93.204 k8s-registry.com  k8s-registry
+192.168.93.204 registry.k8s.com  k8s-registry
 ```
 
 配置主机名
@@ -196,7 +196,7 @@ cat <<EOF | sudo tee /etc/docker/daemon.json
 {
   "registry-mirrors": ["https://xqnrfb7c.mirror.aliyuncs.com"],
   "dns": ["114.114.114.114", "8.8.8.8"],
-  "insecure-registries": ["k8s-registry.com"],
+  "insecure-registries": ["registry.k8s.com"],
   "exec-opts": ["native.cgroupdriver=systemd"]
 }
 EOF
@@ -340,7 +340,7 @@ systemctl status harbor
 
 
 
-登录 harbor http://hadoop3 ，创建用户和项目。
+登录 harbor http://registry.k8s.com ，创建用户和项目。
 
 
 
@@ -348,18 +348,18 @@ systemctl status harbor
 
 ```
 # 打标签
-docker tag nginx:latest k8s-registry.com/library/nginx:1.21.5
+docker tag nginx:latest registry.k8s.com/library/nginx:1.21.5
 
 # 登录
-docker login k8s-registry.com      
+docker login registry.k8s.com      
 Username: guest
 Password: Aa123456
 
 # 上传镜像
-docker push k8s-registry.com/library/nginx:1.21.5
+docker push registry.k8s.com/library/nginx:1.21.5
 
 # 拉镜像
-docker pull k8s-registry.com/library/nginx:1.21.5
+docker pull registry.k8s.com/library/nginx:1.21.5
 ```
 
 
@@ -379,15 +379,15 @@ gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors
 EOF
 
 # 安装
-yum install -y kubelet kubeadm kubectl
+yum install -y kubelet-1.25.3 kubeadm-1.25.3 kubectl-1.25.3
 
 # 下载镜像
-images=$(kubeadm config images list --kubernetes-version=1.28.1 | awk -F "/" '{print $NF}')
+images=$(kubeadm config images list --kubernetes-version=1.25.3 | awk -F "/" '{print $NF}')
 for i in ${images} 
 do   
   docker pull registry.aliyuncs.com/google_containers/$i
-  docker tag registry.aliyuncs.com/google_containers/$i k8s-registry.com/google_containers/$i
-  docker push k8s-registry.com/google_containers/$i
+  docker tag registry.aliyuncs.com/google_containers/$i registry.k8s.com/google_containers/$i
+  docker push registry.k8s.com/google_containers/$i
   docker rmi registry.aliyuncs.com/google_containers/$i
 done
 ```
@@ -398,9 +398,9 @@ master节点
 
 ```
 kubeadm init \
---kubernetes-version=1.28.1 \
---apiserver-advertise-address=192.168.67.201 \
---image-repository=k8s-registry.com/google_containers \
+--kubernetes-version=1.25.3 \
+--apiserver-advertise-address=192.168.93.201 \
+--image-repository=registry.k8s.com/google_containers \
 --pod-network-cidr="10.244.0.0/16" \
 --service-cidr="10.96.0.0/12" \
 --ignore-preflight-errors=Swap \
@@ -444,16 +444,16 @@ wget https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel
 
 docker pull flannel/flannel:v0.22.2 
 docker pull flannel/flannel-cni-plugin:v1.2.0
-docker tag flannel/flannel:v0.22.2 k8s-registry.com/flannel/flannel:v0.22.2
-docker tag flannel/flannel-cni-plugin:v1.2.0 k8s-registry.com/flannel/flannel-cni-plugin:v1.2.0
-docker push k8s-registry.com/flannel/flannel:v0.22.2
-docker push k8s-registry.com/flannel/flannel-cni-plugin:v1.2.0
+docker tag flannel/flannel:v0.22.2 registry.k8s.com/flannel/flannel:v0.22.2
+docker tag flannel/flannel-cni-plugin:v1.2.0 registry.k8s.com/flannel/flannel-cni-plugin:v1.2.0
+docker push registry.k8s.com/flannel/flannel:v0.22.2
+docker push registry.k8s.com/flannel/flannel-cni-plugin:v1.2.0
 ```
 
 修改 kube-flannel.yml ，替换官方仓库为 harbor 地址。
 
 ```
-sudo sed -i 's/docker.io/k8s-registry.com/g' kube-flannel.yml
+sudo sed -i 's/docker.io/registry.k8s.com/g' kube-flannel.yml
 ```
 
 创建 flanel
@@ -520,7 +520,7 @@ source ~/.bashrc
 创建pod
 
 ```
-# kubectl run my-nginx --image=k8s-registry.com/library/nginx:1.21.5
+# kubectl run my-nginx --image=registry.k8s.com/library/nginx:1.21.5
 pod/my-nginx created
 ```
 
@@ -551,8 +551,8 @@ IPs:
 Containers:
   nginx:
     Container ID:   docker://18b65f77faf6dc944fb84b8e8a6d5b1b0b992598814ff1449bd48a4a7d4f84ba
-    Image:          k8s-registry.com/library/nginx:1.21.5
-    Image ID:       docker-pullable://k8s-registry.com/library/nginx@sha256:ee89b00528ff4f02f2405e4ee221743ebc3f8e8dd0bfd5c4c20a2fa2aaa7ede3
+    Image:          registry.k8s.com/library/nginx:1.21.5
+    Image ID:       docker-pullable://registry.k8s.com/library/nginx@sha256:ee89b00528ff4f02f2405e4ee221743ebc3f8e8dd0bfd5c4c20a2fa2aaa7ede3
     Port:           <none>
     Host Port:      <none>
     State:          Running
@@ -583,7 +583,7 @@ Events:
   Type    Reason     Age    From               Message
   ----    ------     ----   ----               -------
   Normal  Scheduled  3m38s  default-scheduler  Successfully assigned default/nginx to k8s-node2
-  Normal  Pulled     3m38s  kubelet            Container image "k8s-registry.com/library/nginx:1.21.5" already present on machine
+  Normal  Pulled     3m38s  kubelet            Container image "registry.k8s.com/library/nginx:1.21.5" already present on machine
   Normal  Created    3m37s  kubelet            Created container nginx
   Normal  Started    3m37s  kubelet            Started container nginx
 ```
@@ -690,7 +690,7 @@ pod "nginx" deleted
 创建deployment
 
 ```
-# kubectl create deployment nginx --image=k8s-registry.com/library/nginx:1.21.5
+# kubectl create deployment nginx --image=registry.k8s.com/library/nginx:1.21.5
 deployment.apps/nginx created
 # kubectl get deployment
 NAME    READY   UP-TO-DATE   AVAILABLE   AGE
@@ -705,7 +705,7 @@ deployment.apps "nginx" deleted
 使用 yaml 创建 deployment
 
 ```
-# kubectl create deployment nginx --image=k8s-registry.com/library/nginx:1.21.5 --dry-run=client -o yaml > 020_deploy_nginx.yaml
+# kubectl create deployment nginx --image=registry.k8s.com/library/nginx:1.21.5 --dry-run=client -o yaml > 020_deploy_nginx.yaml
 # kubectl create -f 020_deploy_nginx.yaml 
 deployment.apps/nginx created
 ```

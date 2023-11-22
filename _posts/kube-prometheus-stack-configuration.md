@@ -25,26 +25,27 @@ lede: "没有摘要"
 
 根据k8s版本选择kube-prometheus分支。
 ```
-git clone https://github.com/prometheus-operator/kube-prometheus.git -b release-0.13
+git clone https://github.com/prometheus-operator/kube-prometheus.git -b release-0.12
 ```
 
 ### 镜像修改
-kubeStateMetrics-deployment.yaml line35
+kube-prometheus/manifests/kubeStateMetrics-deployment.yaml line35
 ```
-        image: k8s-registry.com/kube-state-metrics/kube-state-metrics:v2.9.2
-        #image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.9.2
+        image: k8s-registry.com/kube-state-metrics/kube-state-metrics:v2.7.0
+        #image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.7.0
 ```
 
 kube-prometheus/manifests/prometheusAdapter-deployment.yaml
 ```
-        image: registry.k8s.io/prometheus-adapter/prometheus-adapter:v0.11.1
+        image: registry.k8s.io/prometheus-adapter/prometheus-adapter:v0.10.0
 ```
 
 
 
 ### 暴露服务端口
 后续应通过ingress方式暴露。
-grafana-service.yaml 
+kube-prometheus/manifests/grafana-service.yaml 
+
 ```
 spec:
   ports:
@@ -55,7 +56,7 @@ spec:
   type: NodePort #add
 ```
 
-alertmanager-service.yaml 
+kube-prometheus/manifests/alertmanager-service.yaml 
 ```
 spec:
   ports:
@@ -69,7 +70,7 @@ spec:
   type: NodePort #add
 ```
 
-prometheus-service.yaml 
+kube-prometheus/manifests/prometheus-service.yaml 
 ```
 spec:
   ports:
@@ -133,6 +134,7 @@ spec:
 #### 新增自定义规则
 方式一：
 prometheus-prometheusRule.yaml 
+
 ```
 spec:
   groups:
@@ -150,6 +152,7 @@ spec:
 ```
 方式二：
 新增文件 test-prometheus-cpuRules.yaml
+
 ```
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -220,7 +223,7 @@ stringData:
     "receivers":
     - "name": "web.hook.prometheusalert"
       "webhook_configs":
-      - "url": "http://192.168.67.204:30092/prometheusalert?type=dd&tpl=prometheus-xz&ddurl=https://xz.wps.cn/api/v1/webhook/send?key=c39516d5de7311712facb5936acc4df7&at=18888888888"
+      - "url": "http://192.168.67.204:30092/prometheusalert?type=dd&tpl=prometheus-xz&ddurl=https://xz.wps.cn/api/v1/webhook/send?key=xxx&at=18888888888"
         "send_resolved": true
     "route":
       "group_by":
@@ -765,17 +768,30 @@ spec:
 ```
 创建prometheus-dcgm-exporter.yaml
 ```
-- job_name: linuxbase
+- job_name: dcgm-exporter
   scrape_interval: 15s
   scrape_timeout: 10s
   metrics_path: /metrics
   scheme: http
   static_configs:
   - targets:
-    - 172.10.0.23:9100
+    - 192.168.93.201:9400
 ```
 
+生成secret
+
+```
+kubectl create secret generic additional-configs --from-file=prometheus-dcgm-exporter.yaml -n monitoring --dry-run=client -o yaml > dcgm-exporter-secret.yaml
+```
+
+
+
+
+
+
+
 ### alertReceiver服务
+
 alertReceiver是跑在k8s上的一个中间服务，用来接收Prometheus告警，触发调用k8s api完成具体操作。
 
 
