@@ -161,6 +161,108 @@ Use "vcctl [command] --help" for more information about a command.
 
 #### AI 场景
 
+使用kubeflow调度pytorch任务
+
+```
+# kubectl apply -f kubeflow/training-operator/examples/pytorch/simple.yaml 
+pytorchjob.kubeflow.org/pytorch-simple created
+# kubectl get pod -n kubeflow
+NAME                                READY   STATUS              RESTARTS   AGE
+pytorch-simple-master-0             0/1     ContainerCreating   0          15s
+pytorch-simple-worker-0             0/1     Init:0/1            0          15s
+training-operator-d8799bf5c-kg4jw   1/1     Running             0          42m
+
+# kubectl describe pod pytorch-simple-master-0 -n kubeflow
+...
+Events:
+  Type    Reason     Age    From               Message
+  ----    ------     ----   ----               -------
+  Normal  Scheduled  3m39s  default-scheduler  Successfully assigned kubeflow/pytorch-simple-master-0 to k8s-node2
+  Normal  Pulling    3m38s  kubelet            Pulling image "docker.io/kubeflowkatib/pytorch-mnist:v1beta1-45c5727"
+  Normal  Pulled     3m22s  kubelet            Successfully pulled image "docker.io/kubeflowkatib/pytorch-mnist:v1beta1-45c5727" in 15.845128077s
+  Normal  Created    3m22s  kubelet            Created container pytorch
+  Normal  Started    3m22s  kubelet            Started container pytorch
+```
+
+使用volcano调度pytorch任务
+
+```
+apiVersion: "kubeflow.org/v1"
+kind: PyTorchJob
+metadata:
+  name: pytorch-simple
+  namespace: kubeflow
+spec:
+  pytorchReplicaSpecs:
+    Master:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          schedulerName: volcano    #
+          containers:
+            - name: pytorch
+              image: docker.io/kubeflowkatib/pytorch-mnist:v1beta1-45c5727
+              imagePullPolicy: Always
+              command:
+                - "python3"
+                - "/opt/pytorch-mnist/mnist.py"
+                - "--epochs=1"
+    Worker:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          schedulerName: volcano    #
+          containers:
+            - name: pytorch
+              image: docker.io/kubeflowkatib/pytorch-mnist:v1beta1-45c5727
+              imagePullPolicy: Always
+              command:
+                - "python3"
+                - "/opt/pytorch-mnist/mnist.py"
+                - "--epochs=1"
+```
+
+
+
+```
+# kubectl describe pod pytorch-simple-master-0 -n kubeflow
+...
+Events:
+  Type    Reason     Age   From     Message
+  ----    ------     ----  ----     -------
+  Normal  Scheduled  48s   volcano  Successfully assigned kubeflow/pytorch-simple-master-0 to k8s-worker1.sdns.dev.cloud
+  Normal  Pulled     48s   kubelet  Container image "docker.io/istio/proxyv2:1.16.0" already present on machine
+  Normal  Created    48s   kubelet  Created container istio-init
+  Normal  Started    48s   kubelet  Started container istio-init
+  Normal  Pulling    47s   kubelet  Pulling image "docker.io/kubeflowkatib/pytorch-mnist:v1beta1-45c5727"
+  Normal  Pulled     45s   kubelet  Successfully pulled image "docker.io/kubeflowkatib/pytorch-mnist:v1beta1-45c5727" in 2.141690273s
+  Normal  Created    45s   kubelet  Created container pytorch
+  Normal  Started    44s   kubelet  Started container pytorch
+  Normal  Pulled     44s   kubelet  Container image "docker.io/istio/proxyv2:1.16.0" already present on machine
+  Normal  Created    44s   kubelet  Created container istio-proxy
+  Normal  Started    44s   kubelet  Started container istio-proxy
+```
+
+
+
+
+
+```
+# kubectl describe pod pytorch-dist-mnist-nccl-worker-0
+...
+Events:
+  Type     Reason     Age                   From               Message
+  ----     ------     ----                  ----               -------
+  Normal   Scheduled  7m39s                 default-scheduler  Successfully assigned default/pytorch-dist-mnist-nccl-worker-0 to k8s-worker1.sdns.dev.cloud
+...
+```
+
+
+
+
+
 
 
 #### 大数据场景
