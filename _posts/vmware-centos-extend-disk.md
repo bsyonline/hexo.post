@@ -29,6 +29,8 @@ tmpfs                    1.9G     0  1.9G    0% /sys/fs/cgroup
 /dev/mapper/centos-root   17G   13G  4.1G   76% /
 /dev/sda1               1014M  184M  831M   19% /boot
 tmpfs                    378M   12K  378M    1% /run/user/42
+
+
 # fdisk -l
 
 磁盘 /dev/sda：53.7 GB, 53687091200 字节，104857600 个扇区

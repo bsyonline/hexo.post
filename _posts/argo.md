@@ -41,7 +41,7 @@ Argo Workflow的一些特点：
 wget https://github.com/argoproj/argo-workflows/releases/download/v3.4.11/install.yaml
 
 kubectl create namespace argo
-kubectl apply -n argo -f 
+kubectl apply -n argo -f install.yaml
 ```
 
 
@@ -302,3 +302,60 @@ Argo CD 的特性：
 
 
 ### argo events
+
+```
+kubectl create namespace argo-events
+kubectl apply -f manifests/install.yaml
+kubectl apply -f manifests/install-validating-webhook.yaml
+```
+
+eventbus
+
+```
+kubectl apply -n argo-events -f examples/eventbus/native.yaml
+```
+
+event-source
+
+```
+kubectl apply -n argo-events -f examples/event-sources/webhook.yaml
+```
+
+sensor rbac
+
+```
+kubectl apply -n argo-events -f examples/rbac/sensor-rbac.yaml
+```
+
+workflow rbac
+
+```
+kubectl apply -n argo-events -f examples/rbac/workflow-rbac.yaml
+```
+
+sensor
+
+```
+kubectl apply -n argo-events -f examples/sensors/webhook.yaml
+```
+
+
+
+
+
+```
+kubectl -n argo-events port-forward $(kubectl -n argo-events get pod -l eventsource-name=webhook -o name) 12000:12000
+```
+
+
+
+```
+curl -d '{"message":"this is my first webhook"}' -H "Content-Type: application/json" -X POST http://localhost:12000/example
+```
+
+
+
+```
+kubectl -n argo-events get workflows | grep "webhook"
+```
+

@@ -130,12 +130,21 @@ sed -i '/swap/s/^\(.*\)$/#\1/g' /etc/fstab
 
 更新yum源
 
+```
+sed -e 's|^mirrorlist=|#mirrorlist=|g' \
+    -e 's|^#baseurl=http://mirror.centos.org/centos|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos|g' \
+    -i.bak \
+    /etc/yum.repos.d/CentOS-*.repo
+    
+yum makecache
+```
+
 
 
 安装工具
 
 ```
-yum install -y net-tools wget vim*
+yum install -y net-tools wget vim* lrzsz bash-completion
 ```
 
 
@@ -220,7 +229,7 @@ cp cri-docker.service /etc/systemd/system/
 cp cri-docker.socket /etc/systemd/system/
 ```
 
-把 cri-dockerd 命令 scp 到其他机器的 /usr/local/bin 。
+把 cri-dockerd 命令 scp 到其他机器的 /usr/local/bin 和 /usr/bin 。
 
 修改配置
 
@@ -828,7 +837,33 @@ Service 有四种类型，包括：
 
 
 
-#### ingress
+#### Ingress
+
+
+
+#### ConfigMap
+
+
+
+#### Secret
+
+在 Kubernetes 中，ConfigMap 通常用于存储配置信息，如果配置信息中有用户名和密码等敏感信息，直接在在 ConfigMap 中并不安全。为了安全起见，你可以使用 Kubernetes 的 Secret 来存储敏感信息，然后在 ConfigMap 中通过环境变量引用这些 Secret。
+
+```
+apiVersion: v1  
+kind: Secret  
+metadata:  
+  namespace: kube-system  
+  name: kibana-elasticsearch-credentials  
+type: Opaque  
+data:  
+  elasticsearch-username: YVSVRFVDU0VSVENBUVVTRU5BTUU= # base64 编码的用户名  
+  elasticsearch-password: RVNBUFRJTkdIRUNIVEVSREVSQ0VSU0U= # base64 编码的密码
+```
+
+使用 `echo -n "your_username" | base64` 和 `echo -n "your_password" | base64` 来生成这些值。
+
+创建
 
 
 
