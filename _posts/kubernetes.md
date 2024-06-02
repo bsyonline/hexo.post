@@ -176,7 +176,7 @@ sudo systemctl start docker
 
 参考 [Container Runtimes | Kubernetes](https://kubernetes.io/docs/setup/production-environment/container-runtimes/)
 
-```
+```shell
 cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
 overlay
 br_netfilter
@@ -200,7 +200,7 @@ sudo sysctl --system
 
 ##### 配置 cgroup driver
 
-```
+```shell
 cat <<EOF | sudo tee /etc/docker/daemon.json
 {
   "registry-mirrors": ["https://xqnrfb7c.mirror.aliyuncs.com"],
@@ -218,7 +218,7 @@ sudo systemctl restart docker
 
 ##### 安装 cri-dockerd
 
-```
+```shell
 wget https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.2/cri-dockerd-0.3.2.amd64.tgz
 wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.service
 wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.socket
@@ -233,7 +233,7 @@ cp cri-docker.socket /etc/systemd/system/
 
 修改配置
 
-```
+```shell
 # cri-dockerd.service
 cat <<EOF | sudo tee /usr/lib/systemd/system/cri-docker.service
 [Unit]
@@ -289,7 +289,7 @@ systemctl is-active cri-docker
 
 #### 安装harbor
 
-```
+```shell
 # 安装docker-compose
 yum install -y epel-release
 yum install -y docker-compose
@@ -355,7 +355,7 @@ systemctl status harbor
 
 上传镜像
 
-```
+```shell
 # 打标签
 docker tag nginx:latest registry.k8s.com/library/nginx:1.21.5
 
@@ -375,7 +375,7 @@ docker pull registry.k8s.com/library/nginx:1.21.5
 
 #### 初始化k8s集群
 
-```
+```shell
 # 配置源
 cat <<EOF > /etc/yum.repos.d/kubernetes.repo
 [kubernetes]
@@ -405,7 +405,7 @@ done
 
 master节点
 
-```
+```shell
 kubeadm init \
 --kubernetes-version=1.25.3 \
 --apiserver-advertise-address=192.168.93.201 \
@@ -420,7 +420,7 @@ node节点
 
 初始化完成，按照 master 命令行复制。
 
-```
+```shell
 kubeadm join 192.168.67.201:6443 \
 --token y8pzmr.3gde2xw059szwfcm \
 --discovery-token-ca-cert-hash sha256:8f953fc473f666dd0067f2df50567a2e069658d1bfd354910e8b0220a44ad7f3 \
@@ -429,7 +429,7 @@ kubeadm join 192.168.67.201:6443 \
 
 认证
 
-```
+```shell
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
@@ -445,7 +445,7 @@ kubectl get nodes
 
 参考 https://kubernetes.io/docs/concepts/cluster-administration/addons/
 
-```
+```shell
 mkdir -p /data/kubernetes/network/flannel
 cd /data/kubernetes/network/flannel
 wget https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
@@ -467,7 +467,7 @@ sudo sed -i 's/docker.io/registry.k8s.com/g' kube-flannel.yml
 
 创建 flanel
 
-```
+```shell
 # 创建
 kubectl apply -f kube-flannel.yml
 
@@ -482,7 +482,7 @@ kubectl get node
 
 最后再确认一下 kubelet，cri-docker，docker 3个服务要设置成开机启动，否则下次重启机器后 k8s 集群无法正常启动。
 
-```
+```shell
 systemctl enable kubelet cri-docker docker
 ```
 
@@ -492,7 +492,7 @@ systemctl enable kubelet cri-docker docker
 
 如果初始化失败或集群有问题，可以通过 reset 命令重置，master 和 node 节点都要执行。
 
-```
+```shell
 kubeadm reset --cri-socket=unix:///var/run/cri-dockerd.sock
 ```
 
@@ -502,7 +502,7 @@ kubeadm reset --cri-socket=unix:///var/run/cri-dockerd.sock
 
 ##### 自动补全
 
-```
+```shell
 echo "source <(kubectl completion bash)" >> ~/.bashrc 
 echo "source <(kubeadm completion bash)" >> ~/.bashrc 
 source ~/.bashrc
@@ -512,7 +512,7 @@ source ~/.bashrc
 
 ##### 非master节点配置kubectl
 
-```
+```shell
 # 从master拷贝配置文件到node节点
 scp /etc/kubernetes/admin.conf k8s-node1:/etc/kubernetes/
 # 配置环境变量
@@ -528,7 +528,7 @@ source ~/.bashrc
 
 创建pod
 
-```
+```shell
 # kubectl run my-nginx --image=registry.k8s.com/library/nginx:1.21.5
 pod/my-nginx created
 ```
@@ -543,7 +543,7 @@ my-nginx   1/1     Running   0          56s
 
 查看pod创建过程
 
-```
+```shell
 # kubectl describe pod nginx
 Name:             nginx
 Namespace:        default
@@ -599,7 +599,7 @@ Events:
 
 查看日志
 
-```
+```shell
 # kubectl logs nginx
 /docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
 /docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/
@@ -622,7 +622,7 @@ Events:
 
 进入容器
 
-```
+```shell
 # kubectl exec -it nginx -- /bin/bash
 root@nginx:/# curl localhost
 <!DOCTYPE html>
@@ -654,7 +654,7 @@ exit
 
 查看扩展信息
 
-```
+```shell
 # kubectl get pod -o wide
 NAME      READY   STATUS    RESTARTS   AGE     IP            NODE        NOMINATED NODE   READINESS GATES
 nginx     1/1     Running   0          5m34s   10.244.2.9    k8s-node2   <none>           <none>
@@ -686,7 +686,7 @@ Commercial support is available at
 
 通过 yaml 创建容器
 
-```
+```shell
 # kubectl get pod my-nginx -o yaml > 010_pod_nginx.yaml
 # kubectl apply -f 010_pod_nginx.yaml
 pod/nginx created
@@ -698,7 +698,7 @@ pod "nginx" deleted
 
 创建deployment
 
-```
+```shell
 # kubectl create deployment nginx --image=registry.k8s.com/library/nginx:1.21.5
 deployment.apps/nginx created
 # kubectl get deployment
@@ -713,7 +713,7 @@ deployment.apps "nginx" deleted
 
 使用 yaml 创建 deployment
 
-```
+```shell
 # kubectl create deployment nginx --image=registry.k8s.com/library/nginx:1.21.5 --dry-run=client -o yaml > 020_deploy_nginx.yaml
 # kubectl create -f 020_deploy_nginx.yaml 
 deployment.apps/nginx created
@@ -721,14 +721,14 @@ deployment.apps/nginx created
 
 修改 deployment 配置
 
-```
+```shell
 # kubectl edit deployments.apps nginx 
 deployment.apps/nginx edited
 ```
 
 动态调整 pod 数量
 
-```
+```shell
 # kubectl scale deployment nginx --replicas=5
 deployment.apps/nginx scaled
 ```
@@ -737,7 +737,7 @@ deployment.apps/nginx scaled
 
 创建 namespace
 
-```
+```shell
 # kubectl create namespace my-ns
 namespace/my-ns created
 # kubectl get ns
@@ -754,7 +754,7 @@ namespace "my-ns" deleted
 
 通过 yaml 创建 namespace 和 pod
 
-```
+```shell
 # kubectl apply -f my-ns.yaml  
 namespace/my-ns created
 pod/my-nginx-by-yaml created
@@ -765,7 +765,7 @@ my-nginx-by-yaml   1/1     Running   0          30s
 
 
 
-```
+```shell
 # kubectl expose deployment  nginx --port=80
 service/nginx exposed
 # kubectl get svc
@@ -778,7 +778,7 @@ nginx        ClusterIP   10.108.211.75   <none>        80/TCP    11s
 
 #### Service
 
-```
+```shell
 # kubectl expose deploy nginx --port=80
 service/nginx exposed
 
@@ -812,7 +812,7 @@ nginx-5954f9f48-rl4g2   1/1     Running   0          15m   10.244.1.16   k8s-nod
 
 
 
-```
+```shell
 # kubectl apply -f 030_svc_nginx.yaml 
 service/nginx created
 [root@k8s-master kubernetes]# kubectl get svc -o wide
@@ -849,7 +849,7 @@ Service 有四种类型，包括：
 
 在 Kubernetes 中，ConfigMap 通常用于存储配置信息，如果配置信息中有用户名和密码等敏感信息，直接在在 ConfigMap 中并不安全。为了安全起见，你可以使用 Kubernetes 的 Secret 来存储敏感信息，然后在 ConfigMap 中通过环境变量引用这些 Secret。
 
-```
+```yaml
 apiVersion: v1  
 kind: Secret  
 metadata:  
