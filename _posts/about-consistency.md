@@ -1,7 +1,8 @@
 ---
 title: About Consistency
 tags:
-  - Distributed Computing
+  - Distributed
+  - Computing
 category:
   - Java
 author: bsyonline

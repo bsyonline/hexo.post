@@ -27,3 +27,25 @@ kubectl apply -n argo -f install.yaml
 
 
 
+大模型（Large Language Model，LLM）。
+
+B，模型参数的个数，1B=10亿。
+
+PT（pre-training）预训练，在较大的数据集上训练一个模型。
+
+SFT（supervised fine-tuning）有监督微调，在预训练的基础上对模型通过有监督学习对模型参数进行调整。
+
+RLHF（Reinforcement Learning from Human Feedback）
+
+LoRA（Low-Rank Adaptation of Large Language Models）冻结预训练好的模型权重参数，在冻结原模型参数的情况下，通过往模型中加入额外的网络层，并只训练这些新增的网络层参数。
+
+TP（Tensor parallelism）张量并行，
+
+PP（**Pipeline Parallelism**）流水线并行，
+
+DP（Data Parallelism）数据并行，每个GPU上都有完整的模型，将数据分成n份，每个GPU一份数据，计算梯度，最后将梯度累加更新模型。DP多用于单机多卡，DDP多用于多机。
+
+**ZeRO**
+
+
+

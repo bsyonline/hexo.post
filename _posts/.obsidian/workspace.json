@@ -11,9 +11,11 @@
             "id": "473b1f13b0a8020c",
             "type": "leaf",
             "state": {
-              "type": "excalidraw",
+              "type": "markdown",
               "state": {
-                "file": "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md"
+                "file": "valcano.md",
+                "mode": "source",
+                "source": false
               }
             }
           }
@@ -83,7 +85,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md",
+                "file": "valcano.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -100,7 +102,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md",
+                "file": "valcano.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -123,7 +125,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md"
+                "file": "valcano.md"
               }
             }
           },
@@ -156,13 +158,20 @@
   },
   "active": "473b1f13b0a8020c",
   "lastOpenFiles": [
-    "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md",
-    "Excalidraw/Drawing 2024-06-02 10.59.27.excalidraw.md",
     "volcano.md",
+    "valcano.md",
+    "about-consistency.md",
+    "a-guide-to-mongodb-api-and-java-driver.md",
+    "2024-06-02.md",
+    "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md",
+    "megatron.md",
+    "images/volcano组件.png",
+    "images/vcjob和k8s job对比.png",
+    "images/image-20240522174602419.png",
+    "Excalidraw/Drawing 2024-06-02 10.59.27.excalidraw.md",
     "Excalidraw",
     "definitive-guide-for-flink.md",
     "未命名.md",
-    "2024-06-02.md",
     "kubernetes.md",
     "building-and-configuring-ipfs.md",
     "binary-search.md",
@@ -170,7 +179,6 @@
     "algorithm-fibonacci.md",
     "adding-a-new-node-to-ethereum-private-blockchain.md",
     "about-practical-byzantine-fault-tolerance.md",
-    "about-consistency.md",
     "about-delegated-proof-of-stake.md",
     "未命名.canvas"
   ]
