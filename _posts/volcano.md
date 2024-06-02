@@ -14,19 +14,350 @@ thumbnail:
 
 
 
-### 简介
+### 介绍
+
+Volcano 是 CNCF 下的一个基于 Kubernetes 的容器批量计算平台，主要用于高性能计算场景。Volcano支持各种调度策略，包括：
+
+- Gang-scheduling
+
+  Gang-scheduling是一种在并发系统中将多个相关联的进程调度到不同处理器上同时运行的策略。其最主要的原则是保证所有相关联的进程能够同时启动，防止部分进程的异常，导致整个关联进程组的阻塞。例如，提交一个批量Job，这个批量Job包含多个任务，要么这多个任务全部调度成功，要么一个都调度不成功。这种All-or-Nothing调度场景，就被称作Gang scheduling。
+
+- Fair-share scheduling
+
+  公平共享调度（Fair-share scheduling）是一种进程调度算法，旨在确保系统中的所有进程都能公平地分享CPU时间。
+
+- Queue scheduling
+
+  队列调度（Queue Scheduling）是一种进程调度算法，它将进程按顺序放入队列中，并按照队列顺序依次执行。这种调度算法通常按照时间片轮转的方式进行，每个进程在执行完一个时间片后被移至队尾，等待下一次执行。队列调度可以避免某些进程长时间等待，确保每个进程都能获得一定的执行时间。
+
+- Preemption scheduling
+
+  Preemption scheduling是一种进程调度算法，它允许操作系统在进程执行过程中进行抢占（preemption），以便将处理器资源分配给其他进程。这种调度算法通常在实时系统中使用，以确保重要任务能够及时获得处理器资源并优先执行。
+
+- Topology-based scheduling
+
+  Topology-based scheduling是一种进程调度算法，它根据进程的拓扑结构进行调度。
+
+- Reclaims
+
+  reclaims指的是将之前分配给对象的内存重新分配给其他对象，以实现内存的重复利用和高效管理。
+
+- Backfill
+
+  backfill通常用于分布式计算系统中的任务调度和负载均衡。例如，当某个节点上的进程崩溃或出现故障时，调度器可以将该节点上未完成的任务重新分配给其他节点进行处理。同样地，当某个节点上的负载过高时，调度器可以将一些任务从该节点上迁移到其他节点上，以平衡整个系统的负载。
+
+- Resource Reservation
+
+  资源预留调度策略（Resource Reservation Scheduling）是一种调度算法，它允许用户或应用程序在将来使用资源之前提前预留这些资源。资源预留调度策略的优点是可以确保所需的资源在需要时可用，从而避免因资源不足而导致的服务质量下降或连接中断等问题。同时，通过提前预留资源，还可以避免在需要时因资源竞争而导致的延迟或等待时间。缺点是降低了资源的整体利用率。此外，资源预留调度策略的实现和维护有一定的成本和复杂性。
+
+
+
+### 应用场景
+
+#### 弹性调度
+
+![](D:\Dev\hexo\source\_posts\images\弹性调度.png)
+
+#### 作业拓扑感知调度
+
+![](D:\Dev\hexo\source\_posts\images\拓扑感知调度.png)
+
+
+
+#### cpu拓扑感知调度
+
+![](D:\Dev\hexo\source\_posts\images\cpu拓扑感知调度.png)
+
+
+
+#### 为spark提供批量调度
+
+![](D:\Dev\hexo\source\_posts\images\为spark提供批量调度.png)
+
+
+
+#### 在离线混部
+
+![](D:\Dev\hexo\source\_posts\images\在离线混部.png)
 
 
 
 ### 架构
 
+<img src="D:\Dev\hexo\source\_posts\images\volcano系统架构.png" style="zoom:50%;" />
+
+<img src="D:\Dev\hexo\source\_posts\images\volcano架构.png" style="zoom:60%;" />
 
 
-### volcano-controller 执行流程
 
-cmd/controller-manager/main.go
+![](D:\Dev\hexo\source\_posts\images\volcano组件.png)
 
+当我们部署 volcano 完成后，可以看到在 kubernetes 机器上，主要创建了以上三个 service：
+
+**volcano-admission 服务**：通过向 kubernetes 服务注册 MutatingWebhookConfigurations 和 ValidatingWebhookConfigurations，修改及校验 vcjob。主要职责包括如下：
+
+- - mutate：设置 schedulerName，queue，taskName 等。
+  - validate：检查 jobSpec 参数，tasks，plugins 等合法性检查。
+
+**volcano-controller 服务**：监听 kube-apiserver 上的所有 vcjob，pod，PodGroup 等资源，主要管理整个 vcjob 的生命周期，包括其相关的 pod 和 PodGroup 的创建，修改（如状态和事件），以及销毁。
+
+**volcano-scheduler 服务**：pod 资源调度及绑定。
+
+### 安装
+
+#### 安装 volcano
+
+yaml 方式
+
+```shell
+kubectl apply -f https://raw.githubusercontent.com/volcano-sh/volcano/master/installer/volcano-development.yaml
 ```
+
+查看组件状态
+
+```shell
+# kubectl get all -n volcano-system   
+NAME                                       READY   STATUS      RESTARTS   AGE
+pod/volcano-admission-7b7dfb976b-hs5t2     1/1     Running     0          118s
+pod/volcano-admission-init-7q5xw           0/1     Completed   0          118s
+pod/volcano-controllers-7b7bdbbbb7-bd2dt   1/1     Running     0          117s
+pod/volcano-scheduler-7cccd7b856-6sk5s     1/1     Running     0          117s
+
+NAME                                TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+service/volcano-admission-service   ClusterIP   10.99.164.197   <none>        443/TCP    118s
+service/volcano-scheduler-service   ClusterIP   10.98.247.59    <none>        8080/TCP   117s
+
+NAME                                  READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/volcano-admission     1/1     1            1           118s
+deployment.apps/volcano-controllers   1/1     1            1           117s
+deployment.apps/volcano-scheduler     1/1     1            1           117s
+
+NAME                                             DESIRED   CURRENT   READY   AGE
+replicaset.apps/volcano-admission-7b7dfb976b     1         1         1       118s
+replicaset.apps/volcano-controllers-7b7bdbbbb7   1         1         1       117s
+replicaset.apps/volcano-scheduler-7cccd7b856     1         1         1       117s
+
+NAME                               COMPLETIONS   DURATION   AGE
+job.batch/volcano-admission-init   1/1           24s        118s
+```
+
+#### 安装 vcctl
+
+下载源码编译，需要 golang 环境。
+
+```shell
+# make vcctl
+
+# cp _output/bin/vcctl /usr/local/bin
+
+# vcctl -h
+Usage:
+  vcctl [command]
+
+Available Commands:
+  help        Help about any command
+  job         vcctl command line operation job
+  queue       Queue Operations
+  version     Print the version information
+
+Flags:
+  -h, --help                           help for vcctl
+      --log-flush-frequency duration   Maximum number of seconds between log flushes (default 5s)
+
+Use "vcctl [command] --help" for more information about a command.
+```
+
+
+
+### volcano 在各场景如何使用
+
+#### AI 场景
+
+使用kubeflow调度pytorch任务
+
+```shell
+# kubectl apply -f kubeflow/training-operator/examples/pytorch/simple.yaml 
+pytorchjob.kubeflow.org/pytorch-simple created
+# kubectl get pod -n kubeflow
+NAME                                READY   STATUS              RESTARTS   AGE
+pytorch-simple-master-0             0/1     ContainerCreating   0          15s
+pytorch-simple-worker-0             0/1     Init:0/1            0          15s
+training-operator-d8799bf5c-kg4jw   1/1     Running             0          42m
+
+# kubectl describe pod pytorch-simple-master-0 -n kubeflow
+...
+Events:
+  Type    Reason     Age    From               Message
+  ----    ------     ----   ----               -------
+  Normal  Scheduled  3m39s  default-scheduler  Successfully assigned kubeflow/pytorch-simple-master-0 to k8s-node2
+  Normal  Pulling    3m38s  kubelet            Pulling image "docker.io/kubeflowkatib/pytorch-mnist:v1beta1-45c5727"
+  Normal  Pulled     3m22s  kubelet            Successfully pulled image "docker.io/kubeflowkatib/pytorch-mnist:v1beta1-45c5727" in 15.845128077s
+  Normal  Created    3m22s  kubelet            Created container pytorch
+  Normal  Started    3m22s  kubelet            Started container pytorch
+```
+
+使用volcano调度pytorch任务
+
+```yaml
+apiVersion: "kubeflow.org/v1"
+kind: PyTorchJob
+metadata:
+  name: pytorch-simple
+  namespace: kubeflow
+spec:
+  pytorchReplicaSpecs:
+    Master:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          schedulerName: volcano    #
+          containers:
+            - name: pytorch
+              image: docker.io/kubeflowkatib/pytorch-mnist:v1beta1-45c5727
+              imagePullPolicy: Always
+              command:
+                - "python3"
+                - "/opt/pytorch-mnist/mnist.py"
+                - "--epochs=1"
+    Worker:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          schedulerName: volcano    #
+          containers:
+            - name: pytorch
+              image: docker.io/kubeflowkatib/pytorch-mnist:v1beta1-45c5727
+              imagePullPolicy: Always
+              command:
+                - "python3"
+                - "/opt/pytorch-mnist/mnist.py"
+                - "--epochs=1"
+```
+
+
+
+```shell
+# kubectl describe pod pytorch-simple-master-0 -n kubeflow
+...
+Events:
+  Type    Reason     Age   From     Message
+  ----    ------     ----  ----     -------
+  Normal  Scheduled  48s   volcano  Successfully assigned kubeflow/pytorch-simple-master-0 to k8s-worker1.sdns.dev.cloud
+  Normal  Pulled     48s   kubelet  Container image "docker.io/istio/proxyv2:1.16.0" already present on machine
+  Normal  Created    48s   kubelet  Created container istio-init
+  Normal  Started    48s   kubelet  Started container istio-init
+  Normal  Pulling    47s   kubelet  Pulling image "docker.io/kubeflowkatib/pytorch-mnist:v1beta1-45c5727"
+  Normal  Pulled     45s   kubelet  Successfully pulled image "docker.io/kubeflowkatib/pytorch-mnist:v1beta1-45c5727" in 2.141690273s
+  Normal  Created    45s   kubelet  Created container pytorch
+  Normal  Started    44s   kubelet  Started container pytorch
+  Normal  Pulled     44s   kubelet  Container image "docker.io/istio/proxyv2:1.16.0" already present on machine
+  Normal  Created    44s   kubelet  Created container istio-proxy
+  Normal  Started    44s   kubelet  Started container istio-proxy
+```
+
+
+
+
+
+```shell
+# kubectl describe pod pytorch-dist-mnist-nccl-worker-0
+...
+Events:
+  Type     Reason     Age                   From               Message
+  ----     ------     ----                  ----               -------
+  Normal   Scheduled  7m39s                 default-scheduler  Successfully assigned default/pytorch-dist-mnist-nccl-worker-0 to k8s-worker1.sdns.dev.cloud
+...
+```
+
+
+
+
+
+
+
+#### 大数据场景
+
+
+
+#### HPC 场景
+
+
+
+### 插件
+
+
+
+### 架构设计
+
+#### Queue
+
+
+
+#### PodGroup
+
+
+
+#### Action
+
+##### enqueue
+
+入队主要就是过滤出需要处理的Job，根据优先级将所有要处理的Queue加入到一个队列中，同时根据优先级将每一个Queue上的Job也加入到这个Queue的一个队列中，然后根据Queue和Job的优先级来对每一个Job进行预判断，判断当前资源是否满足Job的需求。
+
+##### allocate
+
+就是给每一个Task绑定节点，其处理逻辑主要分以下6步，每次选择一个优先级最高的Task，并找到打分最高的节点bind过去，直到所有的Task都处理完
+
+- - 根据优先级选择一个需要去处理的namespace
+  - 根据优先级选择一个需要去处理的Queue
+  - 根据优先级选择一个需要去处理的Job
+  - 根据优先级选择一个需要去处理的Task
+  - 过滤去除不满足要求的节点
+  - 给节点进行打分，并将分数最高的节点bind给这个Task
+
+
+
+##### backfill
+
+volcano中为了避免饥饿而有条件地为大作业保留了一些资源，回填是对剩下来未调度小Task进行bind的过程，对于每一个未调度的Task。
+
+- 遍历所有节点，过滤掉不满足要求的node
+- 尝试将该Task调度到满足要求的节点上
+
+
+
+##### preempt
+
+抢占是一种特殊的Action，它主要处理的场景是当一个高优先级的Task进入调度器但是当前环境中的资源已经无法满足这个Task的时候，需要能将已经调度的任务中驱逐一部分优先级低的Task，以便这个高优先级的Task能够正常运行，因此其处理过程包含选择优先级低的Task并驱逐的逻辑。其处理流程为：
+
+- 对于PodGroup状态不为Pending的Job进行过滤
+- 对集群中的Job和Task进行优先级队列的初始化
+- 遍历每一个需要进行抢占调度的Task：
+  - 对所有节点进行打分和排序。
+
+- - 按照分数排序对每个节点上的Task，判断该Task是否可以抢占（也就是这个Task是否可以驱逐用来腾出资源给待调度的Task），指导找到节点并且可以驱逐的Task腾出来的资源满足待调度的Task为止。
+  - 可以跨Queue和Queue内部跨Job之间抢占。
+
+
+
+
+
+#### Plugin
+
+
+
+
+
+### 
+
+
+
+### Volcano-controller 执行流程
+
+入口 cmd/controller-manager/main.go
+
+```go
 func main() {
 	...
 
@@ -39,7 +370,7 @@ func main() {
 
 cmd/controller-manager/app/server.go
 
-```
+```go
 func Run(opt *options.ServerOption) error {
 	...
 
@@ -66,13 +397,152 @@ func startControllers(config *rest.Config, opt *options.ServerOption) func(ctx c
 }
 ```
 
-这里首先调用了 controller 的 Initialize 方法，然后协程调用 Run() 。framework.Controller 是一个接口，这里实现是 jobcontroller 。
+framework.Controller 是一个接口，pkg/controllers/framework.interface.go，所有的 controller 都实现这个接口。
 
-pkg/controllers/job/job_controller.go
-
+```go
+type Controller interface {
+	Name() string
+	Initialize(opt *ControllerOption) error
+	// Run run the controller
+	Run(stopCh <-chan struct{})
+}
 ```
+
+在1.8这个版本controller有4个实现：
+
+![image-20240522174602419](D:\Dev\hexo\source\_posts\images\image-20240522174602419.png)
+
+在 startControllers() 中首先调用了 controller 的 Initialize 方法，Initialize 根据 option 初始化名字、队列、cache 等以及注册 handler 函数，然后协程调用 Run() ，在 Run() 中通过 worker 执行具体的 handler ，比如 queuecontroller。
+
+```go
+func (c *queuecontroller) Run(stopCh <-chan struct{}) {
+	...
+	go wait.Until(c.worker, 0, stopCh)
+    ...
+}
+
+func (c *queuecontroller) worker() {
+	for c.processNextReq() {
+	}
+}
+```
+
+每个 controller 实现具体细节不同，但是大体结构一致。
+
+#### QueueController
+
+queuecontroller 负责监听 queue 、podGroup 的状态，来更新 queue 的状态。
+
+在 Run() 中起了两个协程。
+
+```go
+func (c *queuecontroller) Run(stopCh <-chan struct{}) {
+	...
+
+	go wait.Until(c.worker, 0, stopCh)
+	go wait.Until(c.commandWorker, 0, stopCh)
+
+	...
+}
+
+func (c *queuecontroller) worker() {
+	for c.processNextWorkItem() {
+	}
+}
+
+func (c *queuecontroller) commandWorker() {
+	for c.processNextCommand() {
+	}
+}
+
+func (c *queuecontroller) processNextWorkItem() bool {
+	...
+	err := c.syncHandler(req)
+	...
+	return true
+}
+
+func (c *queuecontroller) processNextCommand() bool {
+	...
+	err := c.syncCommandHandler(cmd)
+	...
+	return true
+}
+```
+
+syncHandler 和 syncCommandHandler 在 Initialize 中分别绑定了 handleQueue 和 handleCommand 。handleCommand 中将 command 对象转成 request 对象，加入到 queue 。handleQueue 消费队列中的消息，根据 request 对象的类型调用不同的处理函数来更新 queue 的状态。
+
+```go
+func (c *queuecontroller) handleQueue(req *apis.Request) error {
+	...
+
+	// 根据queue的状态生成处理函数
+	queueState := queuestate.NewState(queue)
+	if queueState == nil {
+		return fmt.Errorf("queue %s state %s is invalid", queue.Name, queue.Status.State)
+	}
+
+	...
+	// 根据action和status来执行处理函数
+	if err := queueState.Execute(req.Action); err != nil {
+		return fmt.Errorf("sync queue %s failed for %v, event is %v, action is %s",
+			req.QueueName, err, req.Event, req.Action)
+	}
+
+	return nil
+}
+```
+
+
+
+#### PgController
+
+PgController 负责为未指定 PodGroup 的 Pod 分配 PodGroup 。
+
+结构和 QueueController 类似，Run() 中通过协程调用 worker 执行。
+
+```go
+func (pg *pgcontroller) Run(stopCh <-chan struct{}) {
+	...
+	go wait.Until(pg.worker, 0, stopCh)
+    ...
+}
+
+func (pg *pgcontroller) worker() {
+	for pg.processNextReq() {
+	}
+}
+
+func (pg *pgcontroller) processNextReq() bool {
+	...
+	// 从list缓存中获取Pod信息
+	pod, err := pg.podLister.Pods(req.podNamespace).Get(req.podName)
+	if err != nil {
+		klog.Errorf("Failed to get pod by <%v> from cache: %v", req, err)
+		return true
+	}
+    ...
+	// 对于没有创建对应的PodGroup的Pod创建其PodGroup，并将PodGroup的name写到Pod的annotation中
+	if err := pg.createNormalPodPGIfNotExist(pod); err != nil {
+		klog.Errorf("Failed to handle Pod <%s/%s>: %v", pod.Namespace, pod.Name, err)
+		pg.queue.AddRateLimited(req)
+		return true
+	}
+    ...
+	return true
+}
+```
+
+从 Queue 中取出 Pod ，创建 PodGroup ，将 PodGroup 的 name 更新到 Pod 的 annotation ，具体逻辑在 createNormalPodPGIfNotExist 中。
+
+#### JobController
+
+JobController 也是一样的，在 Run() 中通过协程启动 worker 执行。
+
+```go
 func (cc *jobcontroller) Run(stopCh <-chan struct{}) {
 	...
+	go wait.Until(cc.handleCommands, 0, stopCh)
 	var i uint32
 	for i = 0; i < cc.workers; i++ {
 		go func(num uint32) {
@@ -84,15 +554,7 @@ func (cc *jobcontroller) Run(stopCh <-chan struct{}) {
 				stopCh)
 		}(i)
 	}
-
-	...
-}
-
-func (cc *jobcontroller) worker(i uint32) {
-	klog.Infof("worker %d start ...... ", i)
-
-	for cc.processNextReq(i) {
-	}
+    ...
 }
 
 func (cc *jobcontroller) processNextReq(count uint32) bool {
@@ -102,11 +564,11 @@ func (cc *jobcontroller) processNextReq(count uint32) bool {
 
 	jobInfo, err := cc.cache.Get(key)
 	...
-	// 返回的是一个&pendingState
+	// 生成对应的执行函数
 	st := state.NewState(jobInfo)
 	...
 
-	// 上边st返回的是一个&pendingState，所以这里的Execute是pendingState中的实现
+	// 执行
 	if err := st.Execute(action); err != nil {
 		...
 	}
@@ -117,6 +579,39 @@ func (cc *jobcontroller) processNextReq(count uint32) bool {
 	return true
 }
 ```
+
+handleCommands 将 command 转换 成 request 对象加入到 Qeueu ，由 worker 进行消费。
+
+NewState 根据 vcjob 状态生成对应的执行函数。
+
+```go
+func NewState(jobInfo *apis.JobInfo) State {
+	job := jobInfo.Job
+	switch job.Status.State.Phase {
+	case vcbatch.Pending:
+		return &pendingState{job: jobInfo}
+	case vcbatch.Running:
+		return &runningState{job: jobInfo}
+	case vcbatch.Restarting:
+		return &restartingState{job: jobInfo}
+	case vcbatch.Terminated, vcbatch.Completed, vcbatch.Failed:
+		return &finishedState{job: jobInfo}
+	case vcbatch.Terminating:
+		return &terminatingState{job: jobInfo}
+	case vcbatch.Aborting:
+		return &abortingState{job: jobInfo}
+	case vcbatch.Aborted:
+		return &abortedState{job: jobInfo}
+	case vcbatch.Completing:
+		return &completingState{job: jobInfo}
+	}
+
+	// It's pending by default.
+	return &pendingState{job: jobInfo}
+}
+```
+
+vcjob 刚提交到 k8s 状态是 pending，st 返回的就是 &pendingState ，会执行 SyncJob 。
 
 pkg/controllers/job/state/pending.go
 
@@ -211,5 +706,135 @@ func (cc *jobcontroller) createOrUpdatePodGroup(job *batch.Job) error {
 }
 ```
 
-syncJob 主要做了 2 件事情，1 是 initiateJob 的时候创建了 PodGroup ，2 是遍历 JobInfo 的 template 的 TaskInfo ，创建对应的 Pod 。
+syncJob 主要做了 2 件事情，1 是 initiateJob 的时候创建了 PodGroup ，2 是遍历 JobInfo 的 template 的 TaskInfo ，创建对应的 Pod 。SyncJob 执行完成 vcjob 的状态就由 pending 变成 running 。
 
+### Volcano-scheduler 执行流程
+
+controller 负责创建出 Pod ，接下来 scheduler 负责 Pod 调度。
+
+scheudler 入口在 cmd/scheduler/main.go 。
+
+```go
+func main() {
+	...
+	if err := app.Run(s); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+}
+```
+
+cmd/scheduler/app/server.go 。
+
+```go
+func Run(opt *options.ServerOption) error {
+	...
+	ctx := signals.SetupSignalContext()
+	run := func(ctx context.Context) {
+		sched.Run(ctx.Done())
+		<-ctx.Done()
+	}
+    ...
+}
+```
+
+/pkg/scheduler/scheduler.go 。
+
+```go
+func (pc *Scheduler) Run(stopCh <-chan struct{}) {
+	...
+	go wait.Until(pc.runOnce, pc.schedulePeriod, stopCh)
+}
+
+func (pc *Scheduler) runOnce() {
+	...
+    actions := pc.actions
+	// 创建新的session，将cache、配置复制到session中，为每一个调度器注册对应的调度算法
+	ssn := framework.OpenSession(pc.cache, plugins, configurations)
+	defer framework.CloseSession(ssn)
+
+	// 根据配置文件中配置的action顺序执行，使用的都是cache中的数据，资源更新不会影响本次执行
+	for _, action := range actions {
+		actionStartTime := time.Now()
+		action.Execute(ssn)
+		metrics.UpdateActionDuration(action.Name(), metrics.Duration(actionStartTime))
+	}
+	...
+}
+```
+
+在 runOnce 中，每次创建一个新的 session ，在 session 处理过程中配置变化不会影响本次处理。在 session 中有2个主要的动作，OpenSession 和遍历注册的 action 执行。
+
+```
+func OpenSession(cache cache.Cache, tiers []conf.Tier, configurations []conf.Configuration) *Session {
+	ssn := openSession(cache)
+	ssn.Tiers = tiers
+	ssn.Configurations = configurations
+
+	for _, tier := range tiers {
+		for _, plugin := range tier.Plugins {
+			if pb, found := GetPluginBuilder(plugin.Name); !found {
+				klog.Errorf("Failed to get plugin %s.", plugin.Name)
+			} else {
+				plugin := pb(plugin.Arguments)
+				ssn.plugins[plugin.Name()] = plugin
+				onSessionOpenStart := time.Now()
+				plugin.OnSessionOpen(ssn)
+				metrics.UpdatePluginDuration(plugin.Name(), metrics.OnSessionOpen, metrics.Duration(onSessionOpenStart))
+			}
+		}
+	}
+	return ssn
+}
+```
+
+OpenSession 的时候分层加载了 scheduler 的 plugin 调用其 OnSessionOpen 函数。scheduler 的 plugin 全都实现了 Plugin 接口。 
+
+```go
+type Plugin interface {
+	// The unique name of Plugin.
+	Name() string
+
+	OnSessionOpen(ssn *Session)
+	OnSessionClose(ssn *Session)
+}
+```
+
+OnSessionOpen 注册了各种 fn 函数，这些函数实现了 plugin 的各种功能。下表是各插件注册的 fn 。
+
+| function\plugin  | binpack | conformance | drf  | gang | nodeorder | predicate | priority | proportion |
+| :--------------- | :------ | :---------- | :--- | :--- | :-------- | :-------- | :------- | :--------- |
+| jobOrderFn       |         |             | *    | *    |           |           | *        |            |
+| queueOrderFn     |         |             |      |      |           |           |          | *          |
+| taskOrderFn      |         |             |      |      |           |           | *        |            |
+| namespaceOrderFn |         |             | *    |      |           |           |          |            |
+| predicateFn      |         |             |      |      |           | *         |          |            |
+| nodeOrderFn      | *       |             |      |      | *         |           |          |            |
+| batchNodeOrderFn |         |             |      |      | *         |           |          |            |
+| preemptableFn    |         | *           | *    | *    |           |           | *        |            |
+| reclaimableFn    |         | *           |      | *    |           |           |          | *          |
+| overusedFn       |         |             |      |      |           |           |          | *          |
+| jobReadyFn       |         |             |      | *    |           |           |          |            |
+| jobPipelinedFn   |         |             |      | *    |           |           |          |            |
+| jobValidFn       |         |             |      | *    |           |           |          |            |
+| jobEnqueueableFn |         |             |      |      |           |           |          | *          |
+
+session 创建好之后，遍历 action 调用其 Execute 函数。volcano 中所有注册的 action 都需要实现该接口。
+
+```go
+type Action interface {
+	// The unique name of Action.
+	Name() string
+
+	// Initialize initializes the allocator plugins.
+	Initialize()
+
+	// Execute allocates the cluster's resources into each queue.
+	Execute(ssn *Session)
+
+	// UnIntialize un-initializes the allocator plugins.
+	UnInitialize()
+}
+```
+
+在 Execute 中会调用 plugin 的 fn 。 
