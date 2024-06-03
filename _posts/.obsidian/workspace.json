@@ -13,13 +13,26 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "valcano.md",
+                "file": "volcano.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "54ed648e05337923",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "python.md",
                 "mode": "source",
                 "source": false
               }
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -85,7 +98,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "valcano.md",
+                "file": "python.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +115,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "valcano.md",
+                "file": "python.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -125,7 +138,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "valcano.md"
+                "file": "python.md"
               }
             }
           },
@@ -156,10 +169,17 @@
       "table-editor-obsidian:Advanced Tables Toolbar": false
     }
   },
-  "active": "473b1f13b0a8020c",
+  "active": "54ed648e05337923",
   "lastOpenFiles": [
     "volcano.md",
+    "python.md",
     "valcano.md",
+    "llm",
+    "bigdata",
+    "shell",
+    "java",
+    "go",
+    "python",
     "about-consistency.md",
     "a-guide-to-mongodb-api-and-java-driver.md",
     "2024-06-02.md",
@@ -171,7 +191,6 @@
     "Excalidraw/Drawing 2024-06-02 10.59.27.excalidraw.md",
     "Excalidraw",
     "definitive-guide-for-flink.md",
-    "未命名.md",
     "kubernetes.md",
     "building-and-configuring-ipfs.md",
     "binary-search.md",
