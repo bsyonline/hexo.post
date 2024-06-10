@@ -18,40 +18,7 @@ thumbnail:
 
 ### 介绍
 
-Volcano 是 CNCF 下的一个基于 Kubernetes 的容器批量计算平台，主要用于高性能计算场景。Volcano支持各种调度策略，包括：
-
-- Gang-scheduling
-
-  Gang-scheduling是一种在并发系统中将多个相关联的进程调度到不同处理器上同时运行的策略。其最主要的原则是保证所有相关联的进程能够同时启动，防止部分进程的异常，导致整个关联进程组的阻塞。例如，提交一个批量Job，这个批量Job包含多个任务，要么这多个任务全部调度成功，要么一个都调度不成功。这种All-or-Nothing调度场景，就被称作Gang scheduling。
-
-- Fair-share scheduling
-
-  公平共享调度（Fair-share scheduling）是一种进程调度算法，旨在确保系统中的所有进程都能公平地分享CPU时间。
-
-- Queue scheduling
-
-  队列调度（Queue Scheduling）是一种进程调度算法，它将进程按顺序放入队列中，并按照队列顺序依次执行。这种调度算法通常按照时间片轮转的方式进行，每个进程在执行完一个时间片后被移至队尾，等待下一次执行。队列调度可以避免某些进程长时间等待，确保每个进程都能获得一定的执行时间。
-
-- Preemption scheduling
-
-  Preemption scheduling是一种进程调度算法，它允许操作系统在进程执行过程中进行抢占（preemption），以便将处理器资源分配给其他进程。这种调度算法通常在实时系统中使用，以确保重要任务能够及时获得处理器资源并优先执行。
-
-- Topology-based scheduling
-
-  Topology-based scheduling是一种进程调度算法，它根据进程的拓扑结构进行调度。
-
-- Reclaims
-
-  reclaims指的是将之前分配给对象的内存重新分配给其他对象，以实现内存的重复利用和高效管理。
-
-- Backfill
-
-  backfill通常用于分布式计算系统中的任务调度和负载均衡。例如，当某个节点上的进程崩溃或出现故障时，调度器可以将该节点上未完成的任务重新分配给其他节点进行处理。同样地，当某个节点上的负载过高时，调度器可以将一些任务从该节点上迁移到其他节点上，以平衡整个系统的负载。
-
-- Resource Reservation
-
-  资源预留调度策略（Resource Reservation Scheduling）是一种调度算法，它允许用户或应用程序在将来使用资源之前提前预留这些资源。资源预留调度策略的优点是可以确保所需的资源在需要时可用，从而避免因资源不足而导致的服务质量下降或连接中断等问题。同时，通过提前预留资源，还可以避免在需要时因资源竞争而导致的延迟或等待时间。缺点是降低了资源的整体利用率。此外，资源预留调度策略的实现和维护有一定的成本和复杂性。
-
+Volcano 是 CNCF 下的一个基于 Kubernetes 的容器批量计算平台，主要用于高性能计算场景。Volcano 的调度器是基于 kube-batch 实现的。Volcano 2018 年开源，目前最新版本 1.9.0 。[volcano-sh/volcano: A Cloud Native Batch System (Project under CNCF) (github.com)](https://github.com/volcano-sh/volcano)
 
 
 ### 应用场景
@@ -89,21 +56,10 @@ Volcano 是 CNCF 下的一个基于 Kubernetes 的容器批量计算平台，主
 
 <img src="D:\Dev\hexo\source\_posts\images\volcano系统架构.png" style="zoom:50%;" />
 
-<img src="D:\Dev\hexo\source\_posts\images\volcano架构.png" style="zoom:60%;" />
-
-
-
-![](D:\Dev\hexo\source\_posts\images\volcano组件.png)
-
-当我们部署 volcano 完成后，可以看到在 kubernetes 机器上，主要创建了以上三个 service：
-
 **volcano-admission 服务**：通过向 kubernetes 服务注册 MutatingWebhookConfigurations 和 ValidatingWebhookConfigurations，修改及校验 vcjob。主要职责包括如下：
-
-- - mutate：设置 schedulerName，queue，taskName 等。
-  - validate：检查 jobSpec 参数，tasks，plugins 等合法性检查。
-
+	- mutate：设置 schedulerName，queue，taskName 等。
+	- validate：检查 jobSpec 参数，tasks，plugins 等合法性检查。
 **volcano-controller 服务**：监听 kube-apiserver 上的所有 vcjob，pod，PodGroup 等资源，主要管理整个 vcjob 的生命周期，包括其相关的 pod 和 PodGroup 的创建，修改（如状态和事件），以及销毁。
-
 **volcano-scheduler 服务**：pod 资源调度及绑定。
 
 ### 安装
@@ -170,6 +126,9 @@ Flags:
 Use "vcctl [command] --help" for more information about a command.
 ```
 
+
+当我们部署 volcano 完成后，可以看到在 kubernetes 机器上，主要创建了三个 service
+![](D:\Dev\hexo\source\_posts\images\volcano组件.png)
 
 
 ### volcano 在各场景如何使用
@@ -295,64 +254,48 @@ Events:
 ### 架构设计
 
 #### Queue
-
-
+queue 是 volcano 中的一个重要的概念，queue 用来承载 PodGroup，通过 Queue 可以对资源进行更精细的管控（比如不同部门可以使用不同的 Queue 进行资源隔离）。默认使用 default 。 
 
 #### PodGroup
+PodGroup 是 volcano 自定义的资源类型，是一组 pod 的集合。通过 PodGroup 可以更方便地协调一组 Pod 的处理。 
 
+#### VolcanoJob
+是 Volcano 自定义的Job资源类型，简称 vcjob 。vcjob 是对 PodGroup 的封装，扩展了更丰富的功能。
 
+几种资源的关系：
+![[volcano几种资源的关系.png]]
 
 #### Action
-
 ##### enqueue
 
 入队主要就是过滤出需要处理的Job，根据优先级将所有要处理的Queue加入到一个队列中，同时根据优先级将每一个Queue上的Job也加入到这个Queue的一个队列中，然后根据Queue和Job的优先级来对每一个Job进行预判断，判断当前资源是否满足Job的需求。
 
 ##### allocate
-
-就是给每一个Task绑定节点，其处理逻辑主要分以下6步，每次选择一个优先级最高的Task，并找到打分最高的节点bind过去，直到所有的Task都处理完
-
-- - 根据优先级选择一个需要去处理的namespace
-  - 根据优先级选择一个需要去处理的Queue
-  - 根据优先级选择一个需要去处理的Job
-  - 根据优先级选择一个需要去处理的Task
-  - 过滤去除不满足要求的节点
-  - 给节点进行打分，并将分数最高的节点bind给这个Task
-
-
+就是给每一个Task绑定节点，其处理逻辑主要分以下6步，每次选择一个优先级最高的Task，并找到打分最高的节点bind过去，直到所有的Task都处理完。
+- 根据优先级选择一个需要去处理的namespace
+- 根据优先级选择一个需要去处理的Queue
+- 根据优先级选择一个需要去处理的Job
+- 根据优先级选择一个需要去处理的Task
+- 过滤去除不满足要求的节点
+- 给节点进行打分，并将分数最高的节点bind给这个Task
 
 ##### backfill
-
 volcano中为了避免饥饿而有条件地为大作业保留了一些资源，回填是对剩下来未调度小Task进行bind的过程，对于每一个未调度的Task。
-
 - 遍历所有节点，过滤掉不满足要求的node
 - 尝试将该Task调度到满足要求的节点上
 
-
-
 ##### preempt
-
 抢占是一种特殊的Action，它主要处理的场景是当一个高优先级的Task进入调度器但是当前环境中的资源已经无法满足这个Task的时候，需要能将已经调度的任务中驱逐一部分优先级低的Task，以便这个高优先级的Task能够正常运行，因此其处理过程包含选择优先级低的Task并驱逐的逻辑。其处理流程为：
-
 - 对于PodGroup状态不为Pending的Job进行过滤
 - 对集群中的Job和Task进行优先级队列的初始化
 - 遍历每一个需要进行抢占调度的Task：
   - 对所有节点进行打分和排序。
-
-- - 按照分数排序对每个节点上的Task，判断该Task是否可以抢占（也就是这个Task是否可以驱逐用来腾出资源给待调度的Task），指导找到节点并且可以驱逐的Task腾出来的资源满足待调度的Task为止。
+  - 按照分数排序对每个节点上的Task，判断该Task是否可以抢占（也就是这个Task是否可以驱逐用来腾出资源给待调度的Task），指导找到节点并且可以驱逐的Task腾出来的资源满足待调度的Task为止。
   - 可以跨Queue和Queue内部跨Job之间抢占。
-
-
-
 
 
 #### Plugin
 
-
-
-
-
-### 
 
 
 
@@ -411,7 +354,7 @@ type Controller interface {
 }
 ```
 
-在1.8这个版本controller有4个实现：
+在1.8这个版本 controller 有4个实现：
 
 ![image-20240522174602419](D:\Dev\hexo\source\_posts\images\image-20240522174602419.png)
 
@@ -768,7 +711,7 @@ func (pc *Scheduler) runOnce() {
 
 在 runOnce 中，每次创建一个新的 session ，在 session 处理过程中配置变化不会影响本次处理。在 session 中有2个主要的动作，OpenSession 和遍历注册的 action 执行。
 
-```
+```go
 func OpenSession(cache cache.Cache, tiers []conf.Tier, configurations []conf.Configuration) *Session {
 	ssn := openSession(cache)
 	ssn.Tiers = tiers
@@ -805,22 +748,22 @@ type Plugin interface {
 
 OnSessionOpen 注册了各种 fn 函数，这些函数实现了 plugin 的各种功能。下表是各插件注册的 fn 。
 
-| function\plugin  | binpack | conformance | drf  | gang | nodeorder | predicate | priority | proportion |
-| :--------------- | :------ | :---------- | :--- | :--- | :-------- | :-------- | :------- | :--------- |
-| jobOrderFn       |         |             | *    | *    |           |           | *        |            |
-| queueOrderFn     |         |             |      |      |           |           |          | *          |
-| taskOrderFn      |         |             |      |      |           |           | *        |            |
-| namespaceOrderFn |         |             | *    |      |           |           |          |            |
-| predicateFn      |         |             |      |      |           | *         |          |            |
-| nodeOrderFn      | *       |             |      |      | *         |           |          |            |
-| batchNodeOrderFn |         |             |      |      | *         |           |          |            |
-| preemptableFn    |         | *           | *    | *    |           |           | *        |            |
-| reclaimableFn    |         | *           |      | *    |           |           |          | *          |
-| overusedFn       |         |             |      |      |           |           |          | *          |
-| jobReadyFn       |         |             |      | *    |           |           |          |            |
-| jobPipelinedFn   |         |             |      | *    |           |           |          |            |
-| jobValidFn       |         |             |      | *    |           |           |          |            |
-| jobEnqueueableFn |         |             |      |      |           |           |          | *          |
+| function\plugin  | binpack | conformance | drf | gang | nodeorder | predicate | priority | proportion |
+| :--------------- | :------ | :---------- | :-- | :--- | :-------- | :-------- | :------- | :--------- |
+| jobOrderFn       |         |             | *   | *    |           |           | *        |            |
+| queueOrderFn     |         |             |     |      |           |           |          | *          |
+| taskOrderFn      |         |             |     |      |           |           | *        |            |
+| namespaceOrderFn |         |             | *   |      |           |           |          |            |
+| predicateFn      |         |             |     |      |           | *         |          |            |
+| nodeOrderFn      | *       |             |     |      | *         |           |          |            |
+| batchNodeOrderFn |         |             |     |      | *         |           |          |            |
+| preemptableFn    |         | *           | *   | *    |           |           | *        |            |
+| reclaimableFn    |         | *           |     | *    |           |           |          | *          |
+| overusedFn       |         |             |     |      |           |           |          | *          |
+| jobReadyFn       |         |             |     | *    |           |           |          |            |
+| jobPipelinedFn   |         |             |     | *    |           |           |          |            |
+| jobValidFn       |         |             |     | *    |           |           |          |            |
+| jobEnqueueableFn |         |             |     |      |           |           |          | *          |
 
 session 创建好之后，遍历 action 调用其 Execute 函数。volcano 中所有注册的 action 都需要实现该接口。
 

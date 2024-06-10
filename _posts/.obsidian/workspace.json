@@ -4,16 +4,32 @@
     "type": "split",
     "children": [
       {
-        "id": "ff9a18e203a34e1e",
+        "id": "2bcaaaaa55988693",
         "type": "tabs",
         "children": [
           {
-            "id": "473b1f13b0a8020c",
+            "id": "c7f5a59cd16ee1fc",
             "type": "leaf",
             "state": {
               "type": "excalidraw",
               "state": {
+<<<<<<< HEAD
                 "file": "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md"
+=======
+                "file": "volcano.md",
+                "mode": "source",
+                "source": false
+>>>>>>> 3a2ffe012a6c4ccdcf7236e76059a489d8e4aa02
+              }
+            }
+          },
+          {
+            "id": "705888beb07f9bda",
+            "type": "leaf",
+            "state": {
+              "type": "image",
+              "state": {
+                "file": "images/volcano几种资源的关系.png"
               }
             }
           }
@@ -83,7 +99,11 @@
             "state": {
               "type": "backlink",
               "state": {
+<<<<<<< HEAD
                 "file": "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md",
+=======
+                "file": "volcano.md",
+>>>>>>> 3a2ffe012a6c4ccdcf7236e76059a489d8e4aa02
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -100,7 +120,11 @@
             "state": {
               "type": "outgoing-link",
               "state": {
+<<<<<<< HEAD
                 "file": "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md",
+=======
+                "file": "volcano.md",
+>>>>>>> 3a2ffe012a6c4ccdcf7236e76059a489d8e4aa02
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -123,7 +147,11 @@
             "state": {
               "type": "outline",
               "state": {
+<<<<<<< HEAD
                 "file": "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md"
+=======
+                "file": "volcano.md"
+>>>>>>> 3a2ffe012a6c4ccdcf7236e76059a489d8e4aa02
               }
             }
           },
@@ -136,7 +164,7 @@
             }
           }
         ],
-        "currentTab": 4
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
@@ -154,14 +182,31 @@
       "table-editor-obsidian:Advanced Tables Toolbar": false
     }
   },
-  "active": "473b1f13b0a8020c",
+  "active": "c7f5a59cd16ee1fc",
   "lastOpenFiles": [
+<<<<<<< HEAD
     "valcano.md",
     "volcano.md",
+=======
+    "images/volcano几种资源的关系.png",
+    "images/volcano架构.png",
+    "Excalidraw/volcano几种资源的关系.excalidraw.md",
+    "Excalidraw/python的文件操作.excalidraw.md",
+    "volcano.md",
+    "python.md",
+    "().md",
+    "2024-06-02.md",
+    "images/python_file_option.png",
+    "valcano.md",
+    "llm",
+    "bigdata",
+    "shell",
+    "java",
+    "go",
+    "python",
+>>>>>>> 3a2ffe012a6c4ccdcf7236e76059a489d8e4aa02
     "about-consistency.md",
     "a-guide-to-mongodb-api-and-java-driver.md",
-    "2024-06-02.md",
-    "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md",
     "megatron.md",
     "images/volcano组件.png",
     "images/vcjob和k8s job对比.png",
@@ -169,7 +214,6 @@
     "Excalidraw/Drawing 2024-06-02 10.59.27.excalidraw.md",
     "Excalidraw",
     "definitive-guide-for-flink.md",
-    "未命名.md",
     "kubernetes.md",
     "building-and-configuring-ipfs.md",
     "binary-search.md",
