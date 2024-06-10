@@ -11,11 +11,9 @@
             "id": "473b1f13b0a8020c",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "excalidraw",
               "state": {
-                "file": "valcano.md",
-                "mode": "source",
-                "source": false
+                "file": "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md"
               }
             }
           }
@@ -85,7 +83,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "valcano.md",
+                "file": "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +100,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "valcano.md",
+                "file": "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -125,7 +123,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "valcano.md"
+                "file": "Excalidraw/Drawing 2024-06-02 11.08.50.excalidraw.md"
               }
             }
           },
@@ -158,8 +156,8 @@
   },
   "active": "473b1f13b0a8020c",
   "lastOpenFiles": [
-    "volcano.md",
     "valcano.md",
+    "volcano.md",
     "about-consistency.md",
     "a-guide-to-mongodb-api-and-java-driver.md",
     "2024-06-02.md",
