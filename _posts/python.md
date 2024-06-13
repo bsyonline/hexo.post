@@ -709,7 +709,7 @@ python 是一中动态语言，只要一个对象有需要的方法和属性（�
 | `b`  | 二进制模式                                           |
 | `t`  | 文本模式（默认）                                        |
 | `+`  | 更新（可读写）                                         |
-![[python_file_option.png]]
+!["python_file_option.png"](https://raw.githubusercontent.com/bsyonline/pic/master/img/python_file_option.png)
 
 #### 进程和线程
 Python 既支持多进程又支持多线程，因此使用 Python 实现并发编程主要有3种方式：多进程、多线程、多进程+多线程。
