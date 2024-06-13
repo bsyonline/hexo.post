@@ -248,6 +248,44 @@ Events:
 
 
 ### 插件
+#### Gang
+
+
+#### Binpack
+binpack是一种优化算法，以最小化资源使用量为目标，将资源合理地分配给每个任务，使所有资源都可以实现最大化的利用价值。Binpack调度算法的目标是尽量把已有的节点填满（即尽量不往空白节点分配）。具体实现上，Binpack调度算法为满足调度条件的节点打分，节点的资源利用率越高得分越高。
+
+> [!Binpack 分数计算公式]
+> score=weight * (request + used) / allocatable
+> weight为用户设置的权重
+> request为当前pod请求的资源量
+> used为当前节点已经分配使用的量
+> allocatable为当前节点可用总量
+
+![](https://raw.githubusercontent.com/bsyonline/pic/master/img/4bfa6f7a-1db3-4bc2-a078-23ab4b7a017f.png)
+如图所示，集群中存在两个节点，分别为Node 1和Node 2，假设Binpack权重为1，在调度Pod时，Binpack策略对两个节点分别打分。
+
+对Node 1的打分信息如下：
+
+```
+CPU Score： 1 * （2 + 4）/ 8 = 0.75
+Memory Score： 1 * (4 + 8) / 16 = 0.75
+GPU Score：1 * （4 + 4）/ 8 = 1
+1 * （0.75 + 0.75 + 1）/（1 + 1 + 1）* 100 = 83.3
+```
+
+对Node 2的打分信息如下：
+
+```
+CPU Score： 1 * （2 + 6）/ 8 = 1
+Memory Score： 1 * (4 + 8) / 16 = 0.75
+GPU Score：2 * （4 + 4）/ 8 = 1
+1 * （1 + 0.75 + 1）/（1 + 1 + 1）* 100 = 91.6
+```
+
+Node 2得分大于Node 1，按照Binpack策略，Pod将会优先调度至Node 2。
+
+
+
 
 
 
@@ -263,7 +301,7 @@ PodGroup 是 volcano 自定义的资源类型，是一组 pod 的集合。通过
 是 Volcano 自定义的Job资源类型，简称 vcjob 。vcjob 是对 PodGroup 的封装，扩展了更丰富的功能。
 
 几种资源的关系：
-![[volcano几种资源的关系.png]]
+![](https://raw.githubusercontent.com/bsyonline/pic/master/img/volcano%E5%87%A0%E7%A7%8D%E8%B5%84%E6%BA%90%E7%9A%84%E5%85%B3%E7%B3%BB.png)
 
 #### Action
 ##### enqueue
