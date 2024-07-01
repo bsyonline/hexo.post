@@ -85,7 +85,7 @@ hostnamectl set-hostname k8s-master
 
 配置静态ip
 
-```
+```sh
 # cat /etc/sysconfig/network-scripts/ifcfg-eth0
 TYPE=Ethernet
 PROXY_METHOD=none
@@ -839,7 +839,176 @@ Service 有四种类型，包括：
 
 #### Ingress
 
+##### ingress-nginx 使用
 
+yaml 方式安装
+```sh
+wget https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/cloud/deploy.yaml
+```
+这个 yaml 是提供给云服务环境使用的，本地环境使用需要进行一些修改。
+1. 修改镜像地址。
+```
+registry.k8s.io/ingress-nginx/controller:v1.10.1@sha256:e24f39d3eed6bcc239a56f20098878845f62baa34b9f2be2fd2c38ce9fb0f29e
+registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.4.1@sha256:36d05b4077fb8e3d13663702fa337f124675ba8667cbd949c03a8e8ea6fa4366
+```
+registry.k8s.io 国内无法访问，需要将这两个镜像替换成国内或私服地址。
+
+2. 将 Deployment 改成 DaemonSet，删除 strategy 。
+```yaml
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate
+```
+
+
+3. 使用 hostNetwork
+```
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  ...
+spec:
+  minReadySeconds: 0
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: ingress-nginx
+      app.kubernetes.io/name: ingress-nginx
+  template:
+    ...
+    spec:
+      hostNetwork: true # 增加
+      containers:
+      - args:
+        ...
+        image: registry.k8s.com/ingress-nginx/controller:v1.10.1
+        ...
+```
+
+4. 修改 Service 的类型。
+ingress-nginx-controller Service 的类型是 LoadBalancer ，这个是给云服务用的，本地使用需要改成 ClusterIP 。删除 externalTrafficPolicy: Local 。
+
+修改完成执行 
+```
+# kubectl apply -f deploy.yaml
+namespace/ingress-nginx created
+serviceaccount/ingress-nginx created
+serviceaccount/ingress-nginx-admission created
+role.rbac.authorization.k8s.io/ingress-nginx created
+role.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx-admission created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+configmap/ingress-nginx-controller created
+service/ingress-nginx-controller created
+service/ingress-nginx-controller-admission created
+daemonset.apps/ingress-nginx-controller created
+job.batch/ingress-nginx-admission-create created
+job.batch/ingress-nginx-admission-patch created
+ingressclass.networking.k8s.io/nginx created
+validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admission created
+```
+
+部署成功可查看信息。
+```
+# kubectl get pod -n ingress-nginx
+NAME                                   READY   STATUS      RESTARTS   AGE
+ingress-nginx-admission-create-9mx2j   0/1     Completed   0          50s
+ingress-nginx-admission-patch-99c2h    0/1     Completed   1          50s
+ingress-nginx-controller-86w8v         1/1     Running     0          50s
+ingress-nginx-controller-d5tjj         0/1     Running     0          50s
+```
+
+```
+# kubectl get svc -n ingress-nginx
+NAME                                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+ingress-nginx-controller             ClusterIP   10.98.151.8     <none>        80/TCP,443/TCP   3m10s
+ingress-nginx-controller-admission   ClusterIP   10.110.106.95   <none>        443/TCP          3m10s
+```
+
+测试一下。
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-nginx
+  template:
+    metadata:
+      labels:
+        app: my-nginx
+    spec:
+      containers:
+      - name: my-nginx
+        image: nginx:latest
+        ports:
+        - name: httpd
+          containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-nginx-svc
+  namespace: default
+spec:
+  selector:
+    app: my-nginx
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-nginx-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: "www.ingress.rh"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: my-nginx-svc
+            port:
+              number: 80
+```
+
+部署应用
+```
+# kubectl apply -f 040_ingress_nginx.yaml 
+ingress.networking.k8s.io/my-nginx-ingress created
+deployment.apps/my-nginx created
+service/my-nginx-svc created
+```
+
+查看 ingress 
+```
+# kubectl get ingress
+NAME               CLASS   HOSTS            ADDRESS       PORTS   AGE
+my-nginx-ingress   nginx   www.ingress.rh   10.98.151.8   80      2m34s
+```
+
+最后，因为并没有 www.ingress.rh 这个域名，所以在本地 host 增加一个 ip 映射。
+```
+192.168.93.203 www.ingress.rh
+```
+
+这样就可以通过 www.ingress.rh 这个域名访问了。
 
 #### ConfigMap
 

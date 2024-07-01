@@ -709,12 +709,133 @@ python 是一中动态语言，只要一个对象有需要的方法和属性（�
 | `b`  | 二进制模式                                           |
 | `t`  | 文本模式（默认）                                        |
 | `+`  | 更新（可读写）                                         |
+<<<<<<< HEAD
 
 
 ![](.\images\python_file_option.png)
 
+=======
+!["python_file_option.png"](https://raw.githubusercontent.com/bsyonline/pic/master/img/python_file_option.png)
+
+>>>>>>> 79564e61a430deb03e3ecac80a8704b8cea00668
 ### 进程和线程
 Python 既支持多进程又支持多线程，因此使用 Python 实现并发编程主要有3种方式：多进程、多线程、多进程+多线程。
+
+#### 多进程
+```python
+from time import time, sleep  
+from multiprocessing import Process  
+  
+  
+def foo(name):  
+    print(name)  
+    for i in range(5):  
+        print(f"{name} {i}", flush=True)  
+        sleep(1)  
+    print(f"End {name}")  
+  
+  
+def bar(name):  
+    print(name)  
+    for i in range(10):  
+        print(f"{name} {i}", flush=True)  
+        sleep(1)  
+    print(f"End {name}")  
+  
+  
+def main():  
+    start = time()  
+    p1 = Process(target=foo, args=('foo',))  
+    p1.start()  # 启动进程p1  
+    p2 = Process(target=bar, args=('bar',))  
+    p2.start()  # 启动进程p2  
+    p1.join()  # 等待进程p1结束  
+    p2.join()  # 等待进程p2结束  
+    end = time()  
+    print("Execution time: %.2f" % (end - start))  
+  
+  
+if __name__ == "__main__":  
+    main()
+```
+
+
+#### 多线程
+```python
+from threading import Thread  
+from time import sleep, time  
+  
+  
+def foo(name):  
+    print(name)  
+    for i in range(5):  
+        print(f"{name} {i}", flush=True)  
+        sleep(1)  
+    print(f"End {name}")  
+  
+  
+def bar(name):  
+    print(name)  
+    for i in range(10):  
+        print(f"{name} {i}", flush=True)  
+        sleep(1)  
+    print(f"End {name}")  
+  
+  
+def main():  
+    start = time()  
+    t1 = Thread(target=foo, args=('foo',))  
+    t1.start()  
+    t2 = Thread(target=bar, args=('bar',))  
+    t2.start()  
+    t1.join()  
+    t2.join()  
+    end = time()  
+    print("Execution time: %.2f" % (end - start))  
+  
+  
+if __name__ == "__main__":  
+    main()
+```
+
+通过继承 Thread 类的方式也可以创建线程。
+```python
+from threading import Thread  
+from time import sleep, time  
+  
+  
+class Foo(Thread):  
+    def __init__(self, name):  
+        super().__init__()  
+        self.name = name  
+  
+    def run(self):  
+        print(self.name)  
+        for i in range(5):  
+            print(f"{self.name} {i}", flush=True)  
+            sleep(1)  
+        print(f"End {self.name}")  
+  
+  
+def main():  
+    start = time()  
+    t1 = Foo('foo')  
+    t1.start()  
+    t2 = Foo('bar')  
+    t2.start()  
+    t1.join()  
+    t2.join()  
+    end = time()  
+    print("Execution time: %.2f" % (end - start))  
+  
+  
+if __name__ == "__main__":  
+    main()
+```
+
+#### 线程同步
+
+#### 单线程+异步I/O
 
 
 [collections — Container datatypes — Python 3.12.3 documentation](https://docs.python.org/3/library/collections.html)
@@ -768,3 +889,135 @@ arr10 = np.zeros((3, 3))
 arr12 = np.ones((3, 3))
 arr14 = np.empty((3, 3))
 ```
+
+第七种，从文件加载。
+```python
+np.save("data.npy", arr14)  
+arr15 = np.load("data.npy")
+arr14.tofile("data.txt", sep=",")  
+arr16 = np.fromfile("data.txt", sep=",")
+```
+
+##### 数组的属性
+size：数组元素个数。
+```python
+arr.size
+```
+
+shape：数组的形状。
+```python
+arr.shape
+```
+
+dtype：数组元素的数据类型。
+```python
+arr.dtype
+```
+
+ndim：数组的维度。
+```python
+arr.ndim
+```
+
+itemsize：数组单个元素占用内存空间的字节数。
+```python
+arr.itemsize
+```
+
+nbytes：数组所有元素占用内存空间的字节数。
+```python
+arr.nbytes
+```
+
+##### 切片索引
+切片索引是形如`[开始索引:结束索引:跨度]`的语法，通过指定**开始索引**（默认值无穷小）、**结束索引**（默认值无穷大）和**跨度**（默认值1），从数组中取出指定部分的元素并构成新的数组。因为开始索引、结束索引和步长都有默认值，所以它们都可以省略，如果不指定步长，第二个冒号也可以省略。
+
+![](https://raw.githubusercontent.com/bsyonline/pic/master/img/%E4%BA%8C%E7%BB%B4%E6%95%B0%E7%BB%84%E6%99%AE%E9%80%9A%E7%B4%A2%E5%BC%95%E5%92%8C%E5%88%87%E7%89%87%E7%B4%A2%E5%BC%95.png)
+
+> [!NOTE] 注意
+> 切片索引创建的数组和原数组共享数据。
+
+
+##### 花式索引
+花式索引是用保存整数的数组充当一个数组的索引。
+```python
+arr23 = np.arange(1, 10)  
+print(arr23)  # [1 2 3 4 5 6 7 8 9]  
+# 整数索引
+arr24 = arr23[[0, 1, 1, -1, 4, -1]]  
+print(arr24)  # [1 2 2 9 5 9]  
+print(arr24.shape)  # (6,)
+
+arr15 = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+# 多维数组索引
+arr25 = arr15[[0, 2], [1, 2]]  # 第一个数组是行索引，第二个数组是列索引  
+print(arr25)  # [2 9]  
+print(arr25.shape)
+```
+
+##### 布尔索引
+布尔索引就是通过保存布尔值的数组充当一个数组的索引，布尔值为`True`的元素保留，布尔值为`False`的元素不会被选中。布尔值的数组可以手动构造，也可以通过关系运算来产生。
+```python
+arr26 = arr23[[True, False, True, False, True, False, True, False, True]]  
+print(arr26)  # [1 3 5 7 9]  
+arr27 = arr23[arr23 % 2 == 0]  
+print(arr27)  # [2 4 6 8]  
+arr28 = arr23[arr23 > 5]  
+print(arr28)  # [6 7 8 9]  
+arr29 = arr23[~(arr23 < 5)]  
+print(arr29)  # [5 6 7 8 9]
+```
+
+##### 运算
+```python
+arr30 = np.arange(1, 10, 1)  
+# 判断是否所有元素都大于0  
+print(np.all(arr30 > 0))  # True  
+# 转换数据类型  
+print(arr30.astype(np.float32))  
+# 转换形状  
+print(arr30.reshape(3,3))  
+# 求和  
+print(arr30.sum())  # 45  
+# 求平均值  
+print(arr30.mean())  # 5.0  
+print(np.mean(arr30))  # 5.0  
+# 最大值  
+print(np.max(arr30))  # 9  
+# 最大值，等价于np.max()  
+print(np.amax(arr30))  # 9  
+# 最小值  
+print(np.min(arr30))  # 1  
+# 最小值，等价于np.min()  
+print(np.amin(arr30))  # 1  
+# 中位数，50分位数即中位数  
+print(np.quantile(arr30, 0.5))  # 5.0  
+# 最大值的索引  
+print(arr30.argmax())  # 8  
+# 最小值的索引  
+print(arr30.argmin())  # 0
+```
+
+ptp，峰值到峰值（peak-to-peak）的范围（range）。这个值也常被称为数组的“全距”（range）或“跨度”（span）。
+```python
+# 最大值与最小值之间的差值  
+print(np.ptp(arr30))  # 8
+```
+
+所有元素的方差（variance）。方差是衡量数据集中数值与其平均值（均值）之间差异程度的另一个统计量，与标准差不同，方差是每一个数与平均数的差值的平方的平均值。
+```python
+# 方差  
+print(np.var(arr30))  # 6.666666666666667
+```
+
+std，标准差是一个衡量数据集中数值与其平均值（均值）之间差异程度的统计量。标准差=对方差求平方根
+```python
+# 标准差  
+print(np.std(arr30))  # 2.581988897471611
+```
+
+变异系数（Coefficient of Variation，简称CV）是一种用于衡量数据相对离散程度的统计量，它反映了数据集中各观测值相对于其平均值的变异程度。计算公式为：变异系数 C·V = (标准偏差 SD / 平均值 Mean) × 100%。
+```python
+print(np.std(arr30) / np.mean(arr30) * 100)  # 51.63977794943222
+```
+

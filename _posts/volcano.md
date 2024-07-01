@@ -1,7 +1,7 @@
 ---
 title: Volcano
 tags:
-  - Distributed Computing
+  - Computing
 category:
   - k8s
 author: bsyonline
@@ -13,10 +13,15 @@ thumbnail:
 
 
 ### 简介
+随着信息化的不断发展，各行各业的应用层出不穷，这些上层应用需要使用底层的各种资源。然而不同行业不同应用业务场景不尽相同，有的甚至是多种场景的组合。这就导致使用资源变得十分复杂，资源调度框架就应运而生，其目标就是对底层资源进行统一管理，让上层应用更简单更方便的使用底层资源。随之涌现出多种资源调度框架。
+![](https://raw.githubusercontent.com/bsyonline/pic/master/img/23866873-1dd8-4c8d-9070-8821ead8d170.png)
+随着云原生和科学计算的等领域的发展，目前 k8s 成为最流行的资源调度框架之一。但是 k8s 的问题也更加凸显，具体来说就是再多租户模型下的资源调度、大数据、AI类型任务的调度、资源队列、资源共享和弹性调度、细粒度资源管控、应用感知调度、调度算法单一等方面不支持或支持的不好。所以有出现了一些针对特定场景的技术或框架来弥补 k8s 的不足。比如 kube-batch、volcano、scheduler-plugins 等等。
 
-
-
-### 介绍
+| 框架                | 介绍                                                                                        | 优势                                            |
+| ----------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------- |
+| kube-batch        | 运行在 Kubernetes 上面向机器学习 / 大数据 /HPC 的批调度器。                                                  | 实现了Gang Scheduler，支持多租户                       |
+| volcano           | 基于 Kubernetes 的容器批量计算平台/系统。                                                               | 插件更丰富、适用场景更多。                                 |
+| scheduler-plugins | k8s1.16对插件系统进行了重构，社区基于新的sheduling framework实现了多种调度算法，如GangScheduling、CapacityScheduling等。 | 通过插件形式扩展k8s调度器的能力，同时完全兼容Kubernetes原生调度器的全部能力。 |
 
 Volcano 是 CNCF 下的一个基于 Kubernetes 的容器批量计算平台，主要用于高性能计算场景。Volcano 的调度器是基于 kube-batch 实现的。Volcano 2018 年开源，目前最新版本 1.9.0 。[volcano-sh/volcano: A Cloud Native Batch System (Project under CNCF) (github.com)](https://github.com/volcano-sh/volcano)
 
@@ -248,6 +253,44 @@ Events:
 
 
 ### 插件
+#### Gang
+
+
+#### Binpack
+binpack是一种优化算法，以最小化资源使用量为目标，将资源合理地分配给每个任务，使所有资源都可以实现最大化的利用价值。Binpack调度算法的目标是尽量把已有的节点填满（即尽量不往空白节点分配）。具体实现上，Binpack调度算法为满足调度条件的节点打分，节点的资源利用率越高得分越高。
+
+> [!Binpack 分数计算公式]
+> score=weight * (request + used) / allocatable
+> weight为用户设置的权重
+> request为当前pod请求的资源量
+> used为当前节点已经分配使用的量
+> allocatable为当前节点可用总量
+
+![](https://raw.githubusercontent.com/bsyonline/pic/master/img/4bfa6f7a-1db3-4bc2-a078-23ab4b7a017f.png)
+如图所示，集群中存在两个节点，分别为Node 1和Node 2，假设Binpack权重为1，在调度Pod时，Binpack策略对两个节点分别打分。
+
+对Node 1的打分信息如下：
+
+```
+CPU Score： 1 * （2 + 4）/ 8 = 0.75
+Memory Score： 1 * (4 + 8) / 16 = 0.75
+GPU Score：1 * （4 + 4）/ 8 = 1
+1 * （0.75 + 0.75 + 1）/（1 + 1 + 1）* 100 = 83.3
+```
+
+对Node 2的打分信息如下：
+
+```
+CPU Score： 1 * （2 + 6）/ 8 = 1
+Memory Score： 1 * (4 + 8) / 16 = 0.75
+GPU Score：2 * （4 + 4）/ 8 = 1
+1 * （1 + 0.75 + 1）/（1 + 1 + 1）* 100 = 91.6
+```
+
+Node 2得分大于Node 1，按照Binpack策略，Pod将会优先调度至Node 2。
+
+
+
 
 
 
@@ -263,7 +306,7 @@ PodGroup 是 volcano 自定义的资源类型，是一组 pod 的集合。通过
 是 Volcano 自定义的Job资源类型，简称 vcjob 。vcjob 是对 PodGroup 的封装，扩展了更丰富的功能。
 
 几种资源的关系：
-![[volcano几种资源的关系.png]]
+![](https://raw.githubusercontent.com/bsyonline/pic/master/img/volcano%E5%87%A0%E7%A7%8D%E8%B5%84%E6%BA%90%E7%9A%84%E5%85%B3%E7%B3%BB.png)
 
 #### Action
 ##### enqueue
