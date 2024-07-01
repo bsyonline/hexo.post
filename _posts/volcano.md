@@ -1,7 +1,7 @@
 ---
 title: Volcano
 tags:
-  - Distributed Computing
+  - Computing
 category:
   - k8s
 author: bsyonline
@@ -13,10 +13,15 @@ thumbnail:
 
 
 ### 简介
+随着信息化的不断发展，各行各业的应用层出不穷，这些上层应用需要使用底层的各种资源。然而不同行业不同应用业务场景不尽相同，有的甚至是多种场景的组合。这就导致使用资源变得十分复杂，资源调度框架就应运而生，其目标就是对底层资源进行统一管理，让上层应用更简单更方便的使用底层资源。随之涌现出多种资源调度框架。
+![](https://raw.githubusercontent.com/bsyonline/pic/master/img/23866873-1dd8-4c8d-9070-8821ead8d170.png)
+随着云原生和科学计算的等领域的发展，目前 k8s 成为最流行的资源调度框架之一。但是 k8s 的问题也更加凸显，具体来说就是再多租户模型下的资源调度、大数据、AI类型任务的调度、资源队列、资源共享和弹性调度、细粒度资源管控、应用感知调度、调度算法单一等方面不支持或支持的不好。所以有出现了一些针对特定场景的技术或框架来弥补 k8s 的不足。比如 kube-batch、volcano、scheduler-plugins 等等。
 
-
-
-### 介绍
+| 框架                | 介绍                                                                                        | 优势                                            |
+| ----------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------- |
+| kube-batch        | 运行在 Kubernetes 上面向机器学习 / 大数据 /HPC 的批调度器。                                                  | 实现了Gang Scheduler，支持多租户                       |
+| volcano           | 基于 Kubernetes 的容器批量计算平台/系统。                                                               | 插件更丰富、适用场景更多。                                 |
+| scheduler-plugins | k8s1.16对插件系统进行了重构，社区基于新的sheduling framework实现了多种调度算法，如GangScheduling、CapacityScheduling等。 | 通过插件形式扩展k8s调度器的能力，同时完全兼容Kubernetes原生调度器的全部能力。 |
 
 Volcano 是 CNCF 下的一个基于 Kubernetes 的容器批量计算平台，主要用于高性能计算场景。Volcano 的调度器是基于 kube-batch 实现的。Volcano 2018 年开源，目前最新版本 1.9.0 。[volcano-sh/volcano: A Cloud Native Batch System (Project under CNCF) (github.com)](https://github.com/volcano-sh/volcano)
 
