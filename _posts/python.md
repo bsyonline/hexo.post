@@ -456,6 +456,10 @@ for k,v in d1.items():
     print(k.title() + ":" + str(v))
 ```
 
+
+### 装饰器
+
+
 ### 面向对象
 #### 类的定义
 `class`关键字定义类
