@@ -41,11 +41,15 @@ LoRA（Low-Rank Adaptation of Large Language Models）冻结预训练好的模�
 
 TP（Tensor parallelism）张量并行，
 
-PP（**Pipeline Parallelism**）流水线并行，
+PP（Pipeline Parallelism）流水线并行，
 
-DP（Data Parallelism）数据并行，每个GPU上都有完整的模型，将数据分成n份，每个GPU一份数据，计算梯度，最后将梯度累加更新模型。DP多用于单机多卡，DDP多用于多机。
+DP（Data Parallelism）数据并行，每个GPU上都有完整的模型，将数据分成n份，每个GPU一份数据，各自计算梯度，最后将梯度累加更新模型。DP多用于单机多卡，DDP多用于多机。
 
-**ZeRO**
+ZeRO
+
+MoE
+
+FSDP
 
 
 
