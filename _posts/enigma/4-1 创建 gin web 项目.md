@@ -53,7 +53,7 @@ func main() {
 	       "message": "success",  
 	    })
 	})
-	err = r.Run()  
+	err := r.Run()  
 	if err != nil {  
 		return  
 	}
