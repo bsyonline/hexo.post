@@ -1039,3 +1039,37 @@ data:
 
 
 ### Helm
+
+
+
+
+删除k8s资源卡住
+
+```sh
+kubectl delete all --all -n {namespace}
+```
+
+查看 ns 下的所有资源
+
+```sh
+kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl get --show-kind --ignore-not-found -n <namespace>
+```
+
+```sh
+kubectl edit xxx
+```
+
+删除
+finalizers:
+
+
+可能是某种资源有问题
+
+```sh
+kubectl get apiservice
+```
+
+
+```sh
+kubectl delete apiservice <resourcename>
+```
