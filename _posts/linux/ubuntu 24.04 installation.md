@@ -42,6 +42,7 @@ network:
 
 ```sh
 sudo ufw disable
+sudo apt-get install -y selinux-utils
 sudo setenforce 0 && sed -i 's/^SELINUX=enforcing$/SELINUX=disabled/' /etc/selinux/config
 ```
 
@@ -87,23 +88,24 @@ docker --version
 
 配置源和私服
 
-```json
+```sh
+cat <<EOF | sudo tee /etc/docker/daemon.json
 {
   "registry-mirrors": ["https://xxx.mirror.aliyuncs.com"],
   "dns": ["114.114.114.114", "8.8.8.8"],
   "insecure-registries": ["registry.k8s.com"],
   "exec-opts": ["native.cgroupdriver=systemd"]
 }
+EOF
+
+# 重启 docker
+sudo systemctl daemon-reload
+sudo systemctl restart docker
 ```
 
-重启 docker
-
-```sh
-systemctl daemon-reload
-systemctl restart docker
-```
 
 配置 IPv4 和 iptables 参考 [Container Runtimes | Kubernetes](https://kubernetes.io/docs/setup/production-environment/container-runtimes/)
+
 
 ```shell
 cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
