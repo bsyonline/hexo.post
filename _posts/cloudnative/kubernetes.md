@@ -203,7 +203,7 @@ sudo sysctl --system
 ```shell
 cat <<EOF | sudo tee /etc/docker/daemon.json
 {
-  "registry-mirrors": ["https://xqnrfb7c.mirror.aliyuncs.com"],
+  "registry-mirrors": ["https://xxx.mirror.aliyuncs.com"],
   "dns": ["114.114.114.114", "8.8.8.8"],
   "insecure-registries": ["registry.k8s.com"],
   "exec-opts": ["native.cgroupdriver=systemd"]
