@@ -38,14 +38,6 @@ network:
 ```
 
 
-禁用防火墙和 selinux
-
-```sh
-sudo ufw disable
-sudo setenforce 0 && sed -i 's/^SELINUX=enforcing$/SELINUX=disabled/' /etc/selinux/config
-```
-
-
 安装 ssh server
 
 ```sh
@@ -61,6 +53,14 @@ sudo vim /etc/ssh/sshd_config
 sudo /etc/init.d/ssh restart
 #修改root密码
 sudo passwd
+```
+
+禁用防火墙和 selinux
+
+```sh
+sudo ufw disable
+sudo apt-get install -y selinux-utils
+sudo setenforce 0 && sed -i 's/^SELINUX=enforcing$/SELINUX=disabled/' /etc/selinux/config
 ```
 
 安装 docker
