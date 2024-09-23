@@ -1,5 +1,5 @@
 ---
-title: Ubuntu static IP
+title: ubuntu 24.04 installation
 date: 2017-04-01 15:05:26
 tags:
   - Ubuntu
@@ -10,38 +10,43 @@ author: bsyonline
 lede: 没有摘要
 ---
 
-cat /etc/netplan/90-NM-14f59568-5076-387a-aef6-10adfcca2e26.yaml
+### 设置静态IP
+
+live server 安装网络 IPv4 Method Manual 配置：
+
+| 配置项            | 值                       |
+| -------------- | ----------------------- |
+| Subnet         | 192.168.93.0/24         |
+| Address        | 192.168.93.212          |
+| Gateway        | 192.168.93.2            |
+| Name Server    | 192.168.93.2            |
+| Search domains | 8.8.8.8,114.114.114.114 |
+配置完 /etc/netplan/50-cloud-init.yaml 如下
 
 ```yaml
 network:
-  version: 2
-  ethernets:
-    ens33:
-      renderer: NetworkManager
-      match: {}
-      addresses:
-      - "192.168.93.211/24"
-      nameservers:
-        addresses:
-        - 8.8.8.8
-        - 114.114.114.114
-      networkmanager:
-        uuid: "14f59568-5076-387a-aef6-10adfcca2e26"
-        name: "netplan-ens33"
-        passthrough:
-          connection.timestamp: "1726473685"
-          ipv4.address1: "192.168.93.211/24,192.168.93.2"
-          ipv4.method: "manual"
-          ipv6.method: "disabled"
-          ipv6.ip6-privacy: "-1"
-          proxy._: ""
+    ethernets:
+        ens33:
+            addresses:
+            - 192.168.93.212/24
+            nameservers:
+                addresses:
+                - 192.168.93.2
+                search:
+                - 8.8.8.8
+                - 114.114.114.114
+            routes:
+            -   to: default
+                via: 192.168.93.2
+    version: 2
 ```
 
+### 安装配置 ssh server
 
-安装 ssh server
+安装时选了就不用装了
 
 ```sh
-sudo apt-get install -y openssh-server
+sudo apt install -y openssh-server
 sudo /etc/init.d/ssh start
 ```
 
@@ -55,55 +60,11 @@ sudo /etc/init.d/ssh restart
 sudo passwd
 ```
 
-禁用防火墙和 selinux
 
-```sh
-sudo ufw disable
-sudo apt-get install -y selinux-utils
-sudo setenforce 0 && sed -i 's/^SELINUX=enforcing$/SELINUX=disabled/' /etc/selinux/config
-```
+### 配置 Container Runtimes
+参考 [Container Runtimes | Kubernetes](https://kubernetes.io/docs/setup/production-environment/container-runtimes/)
 
-安装 docker
-
-```sh
-sudo apt update
-sudo apt install ca-certificates curl -y
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-sudo apt update
-
-sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-
-sudo usermod -aG docker $USER
-docker --version
-```
-
-配置源和私服
-
-```json
-{
-  "registry-mirrors": ["https://xxx.mirror.aliyuncs.com"],
-  "dns": ["114.114.114.114", "8.8.8.8"],
-  "insecure-registries": ["registry.k8s.com"],
-  "exec-opts": ["native.cgroupdriver=systemd"]
-}
-```
-
-重启 docker
-
-```sh
-systemctl daemon-reload
-systemctl restart docker
-```
-
-配置 IPv4 和 iptables 参考 [Container Runtimes | Kubernetes](https://kubernetes.io/docs/setup/production-environment/container-runtimes/)
+配置内核和 IPv4 packet forwarding
 
 ```shell
 cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
@@ -125,82 +86,175 @@ EOF
 sudo sysctl --system
 ```
 
-安装配置 Containerd
+
+安装 Containerd
 
 ```sh
 sudo apt install -y curl gnupg2 software-properties-common apt-transport-https ca-certificates
 
-sudo apt install containerd.io -y
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/containerd.gpg
+
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+sudo apt update && sudo apt install containerd.io -y
 
 containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
+
 sudo sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml
+
+#修改 sandbox_image 的值为国内镜像或私有镜像。
+sudo sed -i 's/registry.k8s.io/reg.k8s.me/g' /etc/containerd/config.toml
+
 sudo systemctl restart containerd
+sudo systemctl status containerd
+containerd -v
 ```
 
 
-
-
-
-
-
-
-
-安装 cri-dockerd
-
-在[release](https://github.com/Mirantis/cri-dockerd/releases)下载构建好的对应Ubuntu版本的`.deb`安装文件。
-
-```sh 
-wget https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.15/cri-dockerd_0.3.15.3-0.ubuntu-jammy_amd64.deb
-dpkg -i cri-dockerd_0.3.15.3-0.ubuntu-jammy_amd64.deb
-systemctl restart cri-docker.service
-```
-
-
-
-
-
-
-
-
-
-安装k8s
-
-添加源
+/etc/crictl.yaml
 
 ```sh
-apt update && apt install -y apt-transport-https
-
-#添加公钥
-curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add - 
-
-#添加源
-cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
-deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
-EOF
-
-#更新缓存索引
-apt update
-
-#查看kubectl可用版本
-apt-cache madison kubectl
-
-#指定版本安装
-apt install -y kubectl=1.25.3-00 kubelet=1.25.3-00 kubeadm=1.25.3-00
-
-#开机启动
-systemctl enable kubelet
+runtime-endpoint: unix:///run/containerd/containerd.sock
+image-endpoint: unix:///run/containerd/containerd.sock
+timeout: 10
+debug: false
 ```
 
-master节点
+/etc/containerd/config.toml
+
+```toml
+	...
+	
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = ""
+
+      [plugins."io.containerd.grpc.v1.cri".registry.auths]
+
+      [plugins."io.containerd.grpc.v1.cri".registry.configs]
+        [plugins."io.containerd.grpc.v1.cri".registry.configs."reg.k8s.me".tls]
+          insecure_skip_verify = true
+        [plugins."io.containerd.grpc.v1.cri".registry.configs."reg.k8s.me"]
+          [plugins."io.containerd.grpc.v1.cri".registry.configs."reg.k8s.me".auth]
+            username = "admin"
+            password = "123456"
+
+
+      [plugins."io.containerd.grpc.v1.cri".registry.headers]
+
+      [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+          endpoint = ["https://xxx.mirror.aliyuncs.com"]
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."reg.k8s.me"]
+	        endpoint = ["http://reg.k8s.me"]
+
+	...
+
+```
+
+配置完成后重启 containerd
 
 ```sh
-kubeadm init \
---kubernetes-version=1.25.3 \
---apiserver-advertise-address=192.168.93.211 \
---image-repository=registry.k8s.com/google_containers \
---pod-network-cidr="10.244.0.0/16" \
---service-cidr="10.96.0.0/12" \
---ignore-preflight-errors=Swap \
---cri-socket=unix:///var/run/cri-dockerd.sock
---cri-socket=unix:///var/run/containerd/containerd.sock
+sudo systemctl restart containerd
+crictl pull reg.k8s.me/library/alpine:latest
 ```
+
+
+
+
+```sh
+sudo apt update
+sudo apt install -y apt-transport-https ca-certificates curl gpg
+
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.25/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.25/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+
+sudo apt update
+sudo apt install -y kubelet kubeadm kubectl
+
+```
+
+### 禁用 swap
+
+```sh
+sudo swapoff -a
+sudo sed -i '/swap/s/^\(.*\)$/#\1/g' /etc/fstab
+sudo swapon --show
+```
+
+修改 /etc/sysconfig/kubelet
+
+```
+KUBELET_EXTRA_ARGS="--fail-swap-on=false"
+```
+
+### 禁用防火墙和 selinux
+
+```sh
+sudo ufw disable
+sudo apt install -y selinux-utils
+sudo setenforce 0 && sed -i 's/^SELINUX=enforcing$/SELINUX=disabled/' /etc/selinux/config
+```
+
+### 拉取镜像
+
+```sh
+sudo kubeadm config images pull \
+--image-repository=registry.aliyuncs.com/google_containers \
+--kubernetes-version=v1.25.16 \
+--cri-socket=unix:///run/containerd/containerd.sock
+
+
+images=$(kubeadm config images list --kubernetes-version=1.25.16 | awk -F "/" '{print $NF}')
+for i in ${images} 
+do   
+  docker pull registry.aliyuncs.com/google_containers/$i
+  docker tag registry.aliyuncs.com/google_containers/$i reg.k8s.me/google_containers/$i
+  docker push reg.k8s.me/google_containers/$i
+  docker rmi registry.aliyuncs.com/google_containers/$i
+done
+
+```
+
+### 初始化
+
+```bash
+sudo kubeadm init \
+--apiserver-advertise-address=192.168.93.201 \
+--image-repository=reg.k8s.me/google_containers \
+--kubernetes-version=v1.25.16 \
+--service-cidr=10.96.0.0/12 \
+--pod-network-cidr=10.244.0.0/16 \
+--cri-socket=unix:///run/containerd/containerd.sock
+```
+
+master 初始化成功后按提示添加 node 到集群。
+
+```sh
+kubeadm join 192.168.93.201:6443 --token 5xqjs2.plllmvhmynr493z6 --discovery-token-ca-cert-hash sha256:a23f62ed6fb9dfedf7dceaae295bb3cd90aa1ef7f21b89a4ef24108e3fed0b0b
+```
+
+### 安装 calico
+
+
+```sh
+wget https://raw.githubusercontent.com/projectcalico/calico/v3.28.2/manifests/calico.yaml
+
+sed -i 's/docker.io/reg.k8s.me/g' calico.yaml
+
+kubectl apply calico.yaml
+
+```
+
+
+
+### 自动补全命令
+
+```shell
+echo "source <(kubectl completion bash)" >> ~/.bashrc 
+echo "source <(kubeadm completion bash)" >> ~/.bashrc 
+source ~/.bashrc
+```
+
+
