@@ -60,12 +60,15 @@ TP（Tensor parallelism）张量并行，是把某一个层做切分，放置到
 
 TP的原理
 对于输入 X 和权重 W：
+
 $$\displaylines{
 X*W=Y
 }
 $$
+
 行并行
 将 W 按照行切分为 W1、W2，对应的输入需要切分为 X1、X2，即：
+
 $$\displaylines{
 [X1,X2]*
 \begin{bmatrix}
@@ -76,6 +79,7 @@ W1\\W2
 }
 
 $$
+
 假如有2个 GPU，我们可以将 X1W1 放到 GPU1 上计算得到结果 Y1，将 X2W2 放到 GPU2 上计算得到结果 Y2，最后将结果 Y1，Y2 相加得到最终结果 Y。
 
 列并行
@@ -85,6 +89,7 @@ $$\displaylines{
 X*W1=Y1\\ 
 X*W2=Y2
 }$$
+
 将 XW1 放到 GPU1 上计算得到结果 Y1，将 XW2 放到 GPU2 上计算得到结果 Y2，最后将 Y1 和
 Y2 按列拼接得到最终结果 Y。
 
@@ -102,23 +107,68 @@ $$
 m=\frac{1}{b}*\frac{B}{DP} \tag{2}
 $$
 
-
 TP + PP
 PP 会产生 bubble ，bubble 的大小为：
+
 $$
 bubble\_size=\frac{(PP-1)}{m}\tag{3}
 $$
-当 DP=1 时，
+
+当 DP = 1 时，
+
 $$
 PP=\frac{n}{TP}\tag{4}
 $$
 
 将（4）带入（2）故
+
 $$
 bubble\_size=\frac{(\frac{n}{TP}-1)}{m}\tag{5}
 $$
 
-当 TP 增加，bubble size 会减小。
+当 TP 增加，bubble size 会减小。但是当 TP 增加时通信也会增加，因为 TP 需要 all-reduce 操作，所以应该尽量减少机间通信。因此我们应该让 TP 小于单台机器的 GPU 的数量，然后使用 PP 来扩展机器规模。
+
+DP + PP
+
+当 TP = 1 时，
+$$
+PP=\frac{n}{DP}\tag{6}
+$$
+
+
+$$
+m=\frac{B}{b}*\frac{1}{DP}\tag{7}
+$$
+
+
+$$
+b'=\frac{B}{b}\tag{8}
+$$
+
+$$
+m=\frac{b'}{DP}\tag{9}
+$$
+
+由（3）、（6）、（9）得到
+
+$$
+bubble\_size=\frac{(PP-1)}{m}=\frac{(\frac{n}{DP}-1)}{m}=\frac{(\frac{n}{DP}-1)*DP}{b'}=\frac{(n-DP)}{b'}\tag{10}
+$$
+
+
+从（10）看出当 DP 增加，bubble size 变小，但是 bubble 变小 all-reduce 的次数会变多，虽然通信规模不变。
+
+$$
+bubble\_size=\frac{(\frac{n}{DP}-1)}{m}\tag{8}
+$$
+
+
+
+DP + TP
+
+
+
+
 
 
 ZeRO
