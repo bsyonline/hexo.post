@@ -33,11 +33,23 @@ B，模型参数的个数，1B=10亿。
 
 PT（pre-training）预训练，在较大的数据集上训练一个模型。
 
-SFT（supervised fine-tuning）有监督微调，在预训练的基础上对模型通过有监督学习对模型参数进行调整。
+SFT（Supervised Fine-Tuning）有监督微调，在预训练的基础上对模型通过有监督学习对模型参数进行调整。
 
-RLHF（Reinforcement Learning from Human Feedback）
+RLHF（Reinforcement Learning from Human Feedback）RLHF 的基本流程包括三个步骤：
+	监督微调（SFT）
+	奖励模型训练（Reward Model Training）
+	强化学习优化（Reinforcement Learning Optimization）​
 
-LoRA（Low-Rank Adaptation of Large Language Models）冻结预训练好的模型权重参数，在冻结原模型参数的情况下，通过往模型中加入额外的网络层，并只训练这些新增的网络层参数。
+
+参数高效微调（Parameter-Efficient Fine-Tuning, PEFT）冻结预训练好的模型权重参数，在冻结原模型参数的情况下，通过往模型中加入额外的网络层，并只训练这些新增的网络层参数。
+
+LoRA（Low-Rank Adaptation of Large Language Models）是 PEFT 的一种，核心思想是通过引入低秩矩阵来更新模型的权重。
+LoRA 的实现步骤：
+	**选择目标层**：在预训练模型中选择需要微调的层（如 Transformer 的注意力层或全连接层）。
+	**引入低秩矩阵**：为每个目标层的权重矩阵引入低秩矩阵 A 和 B。
+	**冻结原始权重**：在微调过程中，保持原始权重矩阵 W 不变。
+	**更新低秩矩阵**：通过梯度下降优化低秩矩阵 A 和 B。
+	**推理阶段**：将低秩矩阵 A⋅B 加到原始权重矩阵 W 上，得到最终的权重矩阵 W′。
 
 
 
@@ -129,3 +141,12 @@ FSDP
 
 
 
+FlashAttention 是一种高效的注意力机制实现方法，专门针对 Transformer 模型中的自注意力（Self-Attention）计算进行优化。Transformer 模型中的自注意力机制是计算密集型的，尤其是在处理长序列时，其时间和空间复杂度为 O(n2)，其中 n 是序列长度。FlashAttention 旨在减少自注意力计算中的内存占用和计算开销，同时保持模型的性能。FlashAttention 的核心思想是分块计算（Tiling）和重计算（Recomputation）。分块计算是将注意力矩阵的计算分解为多个小块（tiles），逐块计算并累加结果，避免一次性加载整个矩阵。重计算是在前向传播过程中，只保存必要的中间结果，而在反向传播时重新计算需要的中间值。
+
+重计算（Recomputation）是一种在深度学习训练中优化显存使用的技术，核心思想是通过牺牲部分计算时间来减少显存占用。它的基本原理是：在前向传播时只存储必要的输出（如损失值、最终激活值等）不存储所有的中间结果（如每一层的激活值、注意力矩阵等），而是在反向传播时根据需要重新运行前向传播的一部分代码来计算这些中间值。
+重计算的实现可以分为两种主要方式：
+	**逐层重计算（Layer-wise Recomputation）​**：在前向传播时，只存储每一层的输入和输出，而不存储中间激活值。在反向传播时，根据每一层的输入重新计算该层的激活值。这种方法适用于大多数神经网络结构（如 CNN、RNN 等）。
+	**分段重计算（Checkpointing）**：将网络分成若干段（checkpoints），每段包含多个层。在前向传播时，只存储每段的输入和输出，而不存储段内的中间结果。在反向传播时，从最近的 checkpoint 开始重新运行前向传播，生成所需的中间结果。这种方法适用于更复杂的网络结构（如 Transformer）。
+
+
+Softmax 是一种激活函数，具有归一化、单调性和放大效应的特性。在神经网络中，Softmax 通常作为最后一层的激活函数，将模型的输出转换为类别概率。
