@@ -183,9 +183,12 @@ DP + TP
 
 
 
-ZeRO
+ZeRO（Zero Redundancy Optimizer）是一种用于分布式深度学习训练的优化技术，核心思想是通过消除内存冗余来优化模型训练，从而在大规模模型训练中减少内存占用和通信开销。ZeRO 有三个不同级别，分别对应对 Model States 不同程度的分割 (Paritition)：
+	ZeRO-1：分割 `Optimizer States`
+	ZeRO-2：分割 `Optimizer States` 与 `Gradients`
+	ZeRO-3：分割 `Optimizer States` 、`Gradients` 与 `Parameters`
 
-MoE
+MoE（Mixture of Experts，专家混合模型）​ 是一种机器学习模型架构，其核心思想是将多个“专家”模型（子模型）组合起来，通过一个“门控网络”（Gating Network）动态地选择最适合的专家来处理不同的输入数据。
 
 FSDP
 
