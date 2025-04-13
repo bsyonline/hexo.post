@@ -74,36 +74,36 @@ TP的原理
 对于输入 X 和权重 W：
 
 $$\displaylines{
-X*W=Y
+X\cdot W=Y
 }
 $$
 
 行并行
-将 W 按照行切分为 W1、W2，对应的输入需要切分为 X1、X2，即：
+将 W 按照行切分为 $W_1$、$W_2$，对应的输入需要切分为 $X_1$、$X_2$，即：
 
 $$\displaylines{
-[X1,X2]*
+[X_1,X_2]\cdot
 \begin{bmatrix}
-W1\\W2
-\end{bmatrix}=X1*W1+X2*W2=Y \\
+W_1\\W_2
+\end{bmatrix}=X_1 \cdot W_1+X_2 \cdot W_2=Y \\
 
 
 }
 
 $$
 
-假如有2个 GPU，我们可以将 X1W1 放到 GPU1 上计算得到结果 Y1，将 X2W2 放到 GPU2 上计算得到结果 Y2，最后将结果 Y1，Y2 相加得到最终结果 Y。
+假如有2个 GPU，我们可以将 $X_1 \cdot W_1$ 放到 GPU1 上计算得到结果 $Y_1$，将 $X_2 \cdot W_2$ 放到 GPU2 上计算得到结果 $Y_2$，最后将结果 $Y_1$，$Y_2$ 相加得到最终结果 Y。
 
 列并行
-将 W 按照列切分为 W1、W2，输入 X 不需要切分，即
+将 W 按照列切分为 $W_1$、$W_2$，输入 X 不需要切分，即
 
 $$\displaylines{ 
-X*W1=Y1\\ 
-X*W2=Y2
+X \cdot W_1=Y_1\\ 
+X \cdot W_2=Y_2
 }$$
 
-将 XW1 放到 GPU1 上计算得到结果 Y1，将 XW2 放到 GPU2 上计算得到结果 Y2，最后将 Y1 和
-Y2 按列拼接得到最终结果 Y。
+将 $X \cdot W_1$ 放到 GPU1 上计算得到结果 $Y_1$，将 $X \cdot W_2$ 放到 GPU2 上计算得到结果 $Y_2$，最后将 $Y_1$ 和
+$Y_2$ 按列拼接得到最终结果 Y。
 
 PP（Pipeline Parallelism）流水线并行，也叫 Inter-Layer Parallelism，是把模型**不同的层**放到不同设备之上。
 
@@ -111,12 +111,12 @@ PP（Pipeline Parallelism）流水线并行，也叫 Inter-Layer Parallelism，�
 DP、TP、PP 在模型训练中都有各自的限制，从因此通常需要结合多种并行策略来达到最佳效果。我们记Global Batch Size 为 B ，Microbatch Size 为 b ，n 为 GPU 的数量，每个 PP 包含的 mircrobatch 的数量为 m ，则
 
 $$\displaylines{ 
-DP*TP*PP=n \tag{1}
+DP \cdot TP \cdot PP=n \tag{1}
 }
 $$
 
 $$
-m=\frac{1}{b}*\frac{B}{DP} \tag{2}
+m=\frac{1}{b}\cdot\frac{B}{DP} \tag{2}
 $$
 
 TP + PP
@@ -149,7 +149,7 @@ $$
 
 
 $$
-m=\frac{B}{b}*\frac{1}{DP}\tag{7}
+m=\frac{B}{b}\cdot\frac{1}{DP}\tag{7}
 $$
 
 
@@ -164,7 +164,7 @@ $$
 由（3）、（6）、（9）得到
 
 $$
-bubble\_size=\frac{(PP-1)}{m}=\frac{(\frac{n}{DP}-1)}{m}=\frac{(\frac{n}{DP}-1)*DP}{b'}=\frac{(n-DP)}{b'}\tag{10}
+bubble\_size=\frac{(PP-1)}{m}=\frac{(\frac{n}{DP}-1)}{m}=\frac{(\frac{n}{DP}-1)\cdot DP}{b'}=\frac{(n-DP)}{b'}\tag{10}
 $$
 
 
