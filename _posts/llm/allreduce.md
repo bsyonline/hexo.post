@@ -28,24 +28,31 @@ All-Reduce算法是分布式训练中常用的一种通信算法，用于在节�
 
 #### Reduce+Broadcast
 
-
-
-
+![[images/reduce and broadcast.png]]
+这种就是最典型的 PS 架构，这种算法的缺点是 PS 的带宽是最大的瓶颈。
 
 #### Recursive Halving and Doubling（Tree）
 
+![[images/Recursive Halving and Doubling.png]]
 
-
-
+通信步数 2\*log2N。
+优点：通信步数少；通信延迟低；扩展性好。
+缺点：halving阶段有一半的节点带宽处于闲置；每步通信节点都会变。依赖网络拓扑；如果参数量过大，带宽会有压力。
 
 #### Butterfly
 
 
+通信步数 log2N。
+优点：带宽利用率高；通信步数少；扩展性好。
+缺点：复杂度高；依赖网络拓扑；如果参数量过大，带宽会有压力。
 
 
 
 #### Ring
 
+`Ring-Allreduce` 工作过程被分成两个阶段，即`Reduce-Scatter`和 `Allgather`。
+优点：避免了中心节点的问题，通信的数据量只和参数总量有关，与机器数量无关。
+缺点：通信步数多，2*(N-1)。
 
 #### 2D-Torus
 
@@ -96,6 +103,50 @@ P3: [D3] P3: [D0, D1, D2, D3]                P3: [D3] P3: [D0, D3]
 
 ### All-Reduce 带宽计算
 
+### 什么是带宽？algbw 是什么？busbw 又是什么？
+
+网络或数字信号中的带宽是指在时间t内从一端流到另一端的信息量，即数据传输率。
+如果我们有一个数据data 大小s=10G，从P1拷贝data到P2耗时t=5秒，那么我们可以计算P1P2之间的带宽为
+
+$$
+\displaylines{
+algbw = S/t\\
+algbw:alg\ bandwidth\\
+S: size\\
+t: time
+}
+
+
+$$
+
+对于 P1 到 P2 这样的点对点通信，算法带宽是有意义的，但是对于集合操作是不准确的。因为算法带宽的峰值并不等于硬件的带宽峰值，它依赖于Rank的数量。通常随着 Rank 的增加，带宽会降低。为了体现硬件有没有被更好的使用，Nvidia 引入了总线带宽 busbw 。**总线带宽是算法带宽通过一个公式（不同的集合操作，公式也不一样）计算得到的，用来反映 GPU 之间的通信速率。换句话说，总线带宽能够反映硬件的速度瓶颈，包括 NVLink, PCI, QPI, network。**
+
+NCCL 在 2.4 版本之前默认使用的算法是 Ring-Allreduce 。我们知道一次完整的Ring-Allreduce 做了 N-1 次 Reduce-Scatter ，N-1 次 All-Gather ，每次发送 1/N 份数据。故 Reduce-Scatter 的计算公式为：
+
+$$
+\displaylines{
+busbw = (n-1) * (1/n * S) / t \\
+= (n-1) * 1/n * S/t\\
+=algbw * (n-1)/n
+}
+$$
+All-Gather的计算公式为：
+
+$$
+\displaylines{
+busbw = (n-1) * S/n/t \\
+= (n-1) * (1/n * S) / t \\
+= algbw * (n-1)/n
+}
+$$
+
+最终All-Reduce的公式为：
+
+$$
+busbw = algbw * (2 * (n-1)/n)
+$$
+
+
 
 
 ```
@@ -119,19 +170,23 @@ P3: [D3] P3: [D0, D1, D2, D3]                P3: [D3] P3: [D0, D3]
 一次完整的 All-Reduce 做了 N-1 次 Reduce-Scatter ，N-1 次 All-Gather ，每次发送 1/N 份数据。
 
 基本的带宽计算：
-```
-algbw = size (S) / time (t)
-```
+$$\displaylines{
+algbw=\frac{size(S)}{time(t)}
+}
+$$
+ReduceScatter 的带宽为
 
-```
-All Reduce：busbw = algbw * (2*(n-1)/n)
-
-ReduceScatter：busbw = algbw * (n-1)/n
-
-AllGather：busbw = algbw * (n-1)/n
-```
+AllGather 的带宽为
+$$
+busbw = algbw * (n-1)/n
+$$
+All Reduce 的带宽为
+$$
+busbw = algbw * (2*(n-1)/n)
+$$
 
 通过 nccl-test 结果验证：
+
 ```
 # out-of-place in-place
 
@@ -159,3 +214,6 @@ busbw = 25.19 * 2 *（16-1）/ 16 = 47.23（GB/s）
 ```
 
 
+通信原语
+
+![[通信原语.png]]
