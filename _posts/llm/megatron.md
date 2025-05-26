@@ -31,17 +31,22 @@ kubectl apply -n argo -f install.yaml
 
 B，模型参数的个数，1B=10亿。
 
+### PT
+
 PT（pre-training）预训练，在较大的数据集上训练一个模型。
+
+### SFT
 
 SFT（Supervised Fine-Tuning）有监督微调，在预训练的基础上对模型通过有监督学习对模型参数进行调整。
 
-RLHF（Reinforcement Learning from Human Feedback）RLHF 的基本流程包括三个步骤：
-	监督微调（SFT）
-	奖励模型训练（Reward Model Training）
-	强化学习优化（Reinforcement Learning Optimization）​
 
 
-参数高效微调（Parameter-Efficient Fine-Tuning, PEFT）冻结预训练好的模型权重参数，在冻结原模型参数的情况下，通过往模型中加入额外的网络层，并只训练这些新增的网络层参数。
+
+### PEFT
+
+PEFT（Parameter-Efficient Fine-Tuning）参数高效微调，冻结预训练好的模型权重参数，在冻结原模型参数的情况下，通过往模型中加入额外的网络层，并只训练这些新增的网络层参数。
+
+### LoRA
 
 LoRA（Low-Rank Adaptation of Large Language Models）是 PEFT 的一种，核心思想是通过引入低秩矩阵来更新模型的权重。
 LoRA 的实现步骤：
@@ -55,13 +60,17 @@ LoRA 的实现步骤：
 
 
 
-DP（Data Parallelism）数据并行，每个GPU上都有完整的模型，将数据分成n份，每个GPU一份数据，各自计算梯度，最后将梯度累加更新模型。DP多用于单机多卡，DDP多用于多机。
+### 数据并行 
+
+DP（Data Parallelism）每个GPU上都有完整的模型，将数据分成n份，每个GPU一份数据，各自计算梯度，最后将梯度累加更新模型。DP多用于单机多卡，DDP多用于多机。
 数据并行有两个限制： 
 	a）超过某一个点之后，每个GPU的batch size变得太小，GPU利用率降低，通信成本增加。 
 	b）可使用的最大设备数就是batch size，限制了可用于训练的加速器数量。
 对大模型来说因为要在每个GPU上加载完整模型，如果模型过大无法放到单个节点的内存中，那么单纯的数据并行可能是没有意义的，所以数据并行通常会结合模型并行一起使用。
 
-模型并行就是将模型分布在多个GPU上，来解决模型过大个GPU无法放下的问题。模型并行分为两种：
+### 模型并行
+
+就是将模型分布在多个GPU上，来解决模型过大个GPU无法放下的问题。模型并行分为两种：
 	TP（Tensor parallelism）张量并行，也叫 Intra-Layer Parallelism。
 	PP（Pipeline Parallelism）流水线并行，也叫 Inter-Layer Parallelism。
 
@@ -183,18 +192,26 @@ DP + TP
 
 
 
+### ZeRO
+
 ZeRO（Zero Redundancy Optimizer）是一种用于分布式深度学习训练的优化技术，核心思想是通过消除内存冗余来优化模型训练，从而在大规模模型训练中减少内存占用和通信开销。ZeRO 有三个不同级别，分别对应对 Model States 不同程度的分割 (Paritition)：
 	ZeRO-1：分割 `Optimizer States`
 	ZeRO-2：分割 `Optimizer States` 与 `Gradients`
 	ZeRO-3：分割 `Optimizer States` 、`Gradients` 与 `Parameters`
 
-MoE（Mixture of Experts，专家混合模型）​ 是一种机器学习模型架构，其核心思想是将多个“专家”模型（子模型）组合起来，通过一个“门控网络”（Gating Network）动态地选择最适合的专家来处理不同的输入数据。
+### MoE
 
-FSDP
+MoE（Mixture of Experts，专家混合模型）​是一种机器学习模型架构，其核心思想是将多个“专家”模型（子模型）组合起来，通过一个“门控网络”（Gating Network）动态地选择最适合的专家来处理不同的输入数据。
+
+### FSDP
 
 
+
+### FlashAttention 
 
 FlashAttention 是一种高效的注意力机制实现方法，专门针对 Transformer 模型中的自注意力（Self-Attention）计算进行优化。Transformer 模型中的自注意力机制是计算密集型的，尤其是在处理长序列时，其时间和空间复杂度为 O(n2)，其中 n 是序列长度。FlashAttention 旨在减少自注意力计算中的内存占用和计算开销，同时保持模型的性能。FlashAttention 的核心思想是分块计算（Tiling）和重计算（Recomputation）。分块计算是将注意力矩阵的计算分解为多个小块（tiles），逐块计算并累加结果，避免一次性加载整个矩阵。重计算是在前向传播过程中，只保存必要的中间结果，而在反向传播时重新计算需要的中间值。
+
+### 重计算
 
 重计算（Recomputation）是一种在深度学习训练中优化显存使用的技术，核心思想是通过牺牲部分计算时间来减少显存占用。它的基本原理是：在前向传播时只存储必要的输出（如损失值、最终激活值等）不存储所有的中间结果（如每一层的激活值、注意力矩阵等），而是在反向传播时根据需要重新运行前向传播的一部分代码来计算这些中间值。
 重计算的实现可以分为两种主要方式：
@@ -202,4 +219,28 @@ FlashAttention 是一种高效的注意力机制实现方法，专门针对 Tran
 	**分段重计算（Checkpointing）**：将网络分成若干段（checkpoints），每段包含多个层。在前向传播时，只存储每段的输入和输出，而不存储段内的中间结果。在反向传播时，从最近的 checkpoint 开始重新运行前向传播，生成所需的中间结果。这种方法适用于更复杂的网络结构（如 Transformer）。
 
 
-Softmax 是一种激活函数，具有归一化、单调性和放大效应的特性。在神经网络中，Softmax 通常作为最后一层的激活函数，将模型的输出转换为类别概率。
+### Softmax 
+
+是一种激活函数，具有归一化、单调性和放大效应的特性。在神经网络中，Softmax 通常作为最后一层的激活函数，将模型的输出转换为类别概率。
+
+
+### RLHF
+
+RLHF （Reinforcement Learning from Human Feedback）是一种机器学习（ML）技术，它利用人类反馈来优化 ML 模型，从而更有效地进行自我学习。RLHF 的基本流程包括三个步骤：
+	监督微调（SFT）
+	奖励模型训练（Reward Model Training）
+	强化学习优化（Reinforcement Learning Optimization）​
+	
+### PPO
+
+PPO（Proximal Policy Optimization）近端策略优化，是 OpenAI 在 2017 提出的一种强化学习算法。通过在每次更新时限制策略更新的幅度，从而更稳定地更新策略参数。在目标函数中引入剪切项，限制新旧策略的差异，避免过大的策略更新。最大化剪切后的目标，同时保持策略的渐进改进。这种方法有助于避免训练过程中出现的不稳定性和剧烈波动，使得算法更容易收敛并学习到更好的策略。
+
+### DPO
+
+DPO（Direct Preference Optimization）直接偏好优化，是一种稳定的、性能和计算成本轻量级的强化学习算法。​直接利用人类偏好数据优化策略，绕过传统强化学习中显式奖励模型的构建步骤。通过偏好数据（如人类对回答的排序），将奖励函数隐含在策略的优化过程中。基于对比学习思想，最大化偏好回答的概率，最小化非偏好回答的概率。本质上是在人类偏好数据上解决一个分类问题。优点是简化训练流程（无需单独训练奖励模型），降低计算成本，适合语言模型的对齐任务。DPO 是相对于 PPO 更加稳定、低成本的强化学习方法。
+
+
+
+### GRPO
+
+GRPO（Group Regularized Policy Optimization）组正则化策略优化，一种在策略优化中引入​**​组正则化（Group Regularization）​**​的改进方法，旨在提升策略的泛化性或鲁棒性。
