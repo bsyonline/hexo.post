@@ -25,7 +25,7 @@ thumbnail:
 
 那么如何根据 $a_1$，$a_2$，$a_3$，$a_4$ 计算出 $b_1$ 呢？
 
-![[self-attention.png]]
+![[images/self-attention.png]]
 
 
 第一步：

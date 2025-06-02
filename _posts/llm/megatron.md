@@ -108,11 +108,15 @@ $$
 
 $$\displaylines{ 
 X \cdot W_1=Y_1\\ 
+\\
 X \cdot W_2=Y_2
 }$$
 
 将 $X \cdot W_1$ 放到 GPU1 上计算得到结果 $Y_1$，将 $X \cdot W_2$ 放到 GPU2 上计算得到结果 $Y_2$，最后将 $Y_1$ 和
 $Y_2$ 按列拼接得到最终结果 Y。
+
+
+### 流水线并行
 
 PP（Pipeline Parallelism）流水线并行，也叫 Inter-Layer Parallelism，是把模型**不同的层**放到不同设备之上。
 

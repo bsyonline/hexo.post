@@ -37,5 +37,5 @@ Encoder 的作用就是输入一组向量然后输出一组向量，RNN、CNN、
 
 在 Decoder 中还有一个 Multi-Head Attention ，和 Encoder 的 Multi-Head Attention 不同，Encoder 的 Multi-Head Attention 的 $Q,K,V$ 都来自 Encoder ，而 Decoder 中的这个 Encoder 的 Multi-Head Attention 的 $Q$ 来自 Decoder ，$K,V$ 来自 Encoder 。这个过程就叫做 Cross Attention 。
 
-![[cross attention.png]]
+![[images/cross attention.png]]
 
