@@ -1,5 +1,5 @@
 ---
-title: 03_张量并行
+title: 03_Tensor Parallel
 tags:
   - llm
 category: 

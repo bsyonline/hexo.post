@@ -1,5 +1,5 @@
 ---
-title: 04_流水线并行
+title: 04_Pipeline Parallel
 tags:
   - llm
 category: 
@@ -10,7 +10,7 @@ thumbnail:
 ---
 
 
-流水线并行是对模型的层进行切分，将不同的层放到不同的 GPU 上进行处理，这样可以降低显存占用，让 GPU 能够训练更大模型。
+流水线（Pipeline Parallel）并行是对模型的层进行切分，将不同的层放到不同的 GPU 上进行处理，这样可以降低显存占用，让 GPU 能够训练更大模型。
 
 ### 标准流水线并行
 
