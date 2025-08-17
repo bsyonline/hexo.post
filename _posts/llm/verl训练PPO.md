@@ -21,3 +21,10 @@ thumbnail:
 
 计算奖励阶段，verl 使用多源奖励融合机制。开启了 reward_model 就使用 reward_model 计算奖励，没有开启 reward_model 就使用 reward_fn 计算奖励。reward_model 和 reward_fn 可以同时生效。
 
+#### 优势估计阶段
+
+
+
+
+
+
