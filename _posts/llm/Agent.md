@@ -11,23 +11,36 @@ thumbnail:
 ---
 
 
+模型处理任务的模式有很多，包括不限于以下：
 
-CoT（Chain-of-Thought）
+**CoT（Chain-of-Thought）**
 
+思维链是指将逻辑复杂的问题进行拆解，通过一系列有逻辑关系的思考，形成完整的思考过程。思维链是一种改进的 Prompt 技术，由 google 提出 [Chain-of-Thought Prompting Elicits Reasoning in Large Language Models](https://arxiv.org/pdf/2201.11903)，通过 Prompt 告诉模型开启中间推理过程，比如 "Let’s think step by step" 。
 
-
-Plan-and-Execute
-
-
-
-Self-Ask
+完整的 CoT 的 Prompt 通常包含指令、 逻辑依据和示例。传统的 input 到 output 方式不同，CoT 的过程可以分为 4 个阶段：输入解析 - 思维链生成 - 结果推导 - 输出优化。
 
 
-Thinking and Self-Refection
+**Plan-and-Execute**
+
+Plan-and-Execute 是一种面向复杂任务的大模型任务处理范式。Plan-and-Execute 将复杂任务处理拆解成 “规划 - 执行 - 反馈“ 三个环节，而不是简单的线性推理。
 
 
-ReAct
+**Self-Ask**
 
+将一个复杂问题拆分为多个简单子问题，通过递归地向自己提问来逐一解答这些子问题，每个子问题都可通过外部工具（主要是搜索引擎）来回答，然后将这些中间答案逐步聚合，最终形成对原始问题的完整解答。
+
+Self-Ask 的 Prompt 中通常包含 “Are follow up questions needed here” 之类的语句。
+
+**Thinking and Self-Refection**
+
+Thinking and Self-Refection 是一种通过模拟人类“主动思考”+“复盘修正”的认知过程，提升大模型推理准确性、逻辑性的任务处理范式。
+
+**ReAct**
+
+ReAct 是 Reasoning + Acting 的缩写，是一种面向大型语言模型智能体的思维与行动协同架构，由 google 提出 [REACT: SYNERGIZING REASONING AND ACTING IN LANGUAGE MODELS](https://arxiv.org/pdf/2210.03629)。ReAct 的核心运行机制包括三步：
+- 思考：模型基于当前任务的目标和观察到的信息进行逻辑推理和规划，制定执行策略和动作。
+- 行动：根据计划，模型生成执行指令并执行。
+- 观察：模型接收并处理执行后的反馈，作为下一轮的输入，帮助模型进行评估和修正后续计划，直到完成任务。
 
 
 
