@@ -1,7 +1,7 @@
 ---
 title: PyTorch
 tags:
-  - Distributed Computing
+  - AI
 category:
   - Java
 author: bsyonline

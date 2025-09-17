@@ -10,6 +10,7 @@ date: 2018-05-28 15:32:21
 thumbnail:
 ---
 
+### 什么是 self-attention
 
 假设有输入向量 $a$ ，通过 $fc$ 得到输出 $b$ 。
 
@@ -21,7 +22,9 @@ thumbnail:
 
 ![[images/self-attention2.png]]
 
-同理如果 $a_1$ 需要考虑整个序列的关系才能 $b_1$，也是类似的，即根据 $a_1$，$a_2$，$a_3$，$a_4$ 得到 $b_1$，根据 $a_1$，$a_2$，$a_3$，$a_4$ 得到 $b_2$ ，根据 $a_1$，$a_2$，$a_3$，$a_4$ 得到 $b_3$ ，根据 $a_1$，$a_2$，$a_3$，$a_4$ 得到 $b_4$ 。self-attention 就是这样需要考虑整个序列才能计算出 output 。
+同理如果 $a_1$ 需要考虑整个序列的关系才能得到 $b_1$，也是类似的，即根据 $a_1$，$a_2$，$a_3$，$a_4$ 得到 $b_1$，根据 $a_1$，$a_2$，$a_3$，$a_4$ 得到 $b_2$ ，根据 $a_1$，$a_2$，$a_3$，$a_4$ 得到 $b_3$ ，根据 $a_1$，$a_2$，$a_3$，$a_4$ 得到 $b_4$ 。self-attention 就是这样需要考虑整个序列才能计算出 output 。
+
+### self-attention 计算过程
 
 那么如何根据 $a_1$，$a_2$，$a_3$，$a_4$ 计算出 $b_1$ 呢？
 
@@ -44,6 +47,8 @@ $$
 
 比如要计算 $a_1$ 和 $a_2$ 的相关性，那么就将 $a_1$ 和 $a_2$ 分别乘上 2 个向量 $W_q$ 和 $W_k$ 得到 $Q_1$ 和 $K_2$ 。
 
+
+
 第二步：
 再将 $Q_1$ 和 $K_2$ 做点乘得到 $a_1$ 和 $a_2$ 的 attention score $R_{12}$ 。
 
@@ -60,6 +65,7 @@ $$
 {R_{11}}^\prime=Softmax(R_{11}) \tag4
 $$
 
+
 第四步：
 将 $a_1$ 点乘 $W_v$ 得到 $V_1$ 。
 
@@ -69,6 +75,8 @@ $$
 
 同理得到 $V_2$，$V_3$， $V_4$ 。
 
+
+
 第五步：
 将 ${R_{11}}^\prime V_1$，${R_{12}}^\prime V_2$，${R_{13}}^\prime V_3$，${R_{14}}^\prime V_4$ 求和得到 $b_1$ 。
 
@@ -77,6 +85,8 @@ b_1=\sum{{R_{1i}}^\prime V_i} \tag6
 $$
 
 同理可以计算出 $b_2$，$b_3$，$b_4$ 。
+
+
 
 由（1）（2）（5）可以得到
 
@@ -95,6 +105,8 @@ $$
 V=[a_1,a_2,a_3,a_4]\cdot W_v \tag9
 }
 $$
+
+![[self-attention向量计算1.png]]
 
 由（3）可得
 
@@ -137,6 +149,8 @@ R^\prime=Softmax(R)=\begin{bmatrix}
 }
 $$
 
+![[self-attention向量计算2.png]]
+
 由（6）可得
 
 $$
@@ -150,30 +164,25 @@ $$
 }
 $$
 
+![[self-attention向量计算4.png]]
+
 这样我们就从输入 $[a_1\ a_2\ a_3\ a_4]$ 得到了输出 $[b_1\ b_2\ b_3\ b_4]$ 。以上的过程就是 self-attention 。
 
-self-attention 的进阶版本叫做 mutil-head self-attention 。self-attention 只生成了一组 QKV ，mutil-head self-attention 是在 QKV 的基础上再乘上一个矩阵生成出新的一组 QKV ，需要几个 head 就生成几组 QKV 。然后和 self-attention 一样对应位置 QKV 计算，算出每个位置的 $b_{ij}$ 再把他们拼起来再乘上一个矩阵得到 $b_i$ 。
+### mutil-head self-attention
 
-self-attention v.s. CNN
+self-attention 的进阶版本叫做 mutil-head self-attention 。self-attention 只生成了一组 $QKV$ ，mutil-head self-attention 是在 $QKV$ 的基础上再乘上一个矩阵生成出新的一组 $QKV$ ，需要几个 head 就生成几组 $QKV$ 。然后和 self-attention 一样对应位置 $QKV$ 计算，算出每个位置的 $b_{ij}$ 再把他们拼起来再乘上一个矩阵得到 $b_i$ 。
+
+以 2 个 head 为例，得到 2 组 $QKV$ ，每个 head 的 1 组计算出 $b_{i,1}$ ，2 组计算出 $b_{i,2}$ ，相加得到最终的 $b_i$ 。
+
+![[multi-head self-attention.png]]
+
+### self-attention v.s. CNN
 CNN 是 self-attention 的特例。数据量小的时候 CNN 的效果优于 self-attention 。在数据量大的时候 self-attention 由于 CNN 。
 
-self-attention v.s. RNN
+![[self-attention vs CNN.png]]
+### self-attention v.s. RNN
 1. 单项的 RNN 只能考虑已输入的 input ，self-attention 会考虑全部的 input 。RNN 如果需要使用输入，必须要将 input 存到内存中一层一层传递。self-attention 只需要用 QK 就可以。
 2. RNN 是串行的，self-attention 是并行的。
 
-$Q_1=a_1 \cdot W_q$
 
-$K_1=a_1 \cdot W_k$
-
-$K_2=a_2 \cdot W_k$
-
-$\mathcal{K_3=a_3 \cdot W_k}$
-$K_4=a_4 \cdot W_k$
-
-$V_1=a_1 \cdot W_v$
-$V_2=a_2 \cdot W_v$
-$V_3=a_3 \cdot W_v$
-$V_4=a_4 \cdot W_v$
-
-
-
+![[self-attention vs RNN.png]]
